@@ -13,7 +13,12 @@
     "db:reset": "prisma migrate reset",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "backup": "node scripts/backup.js",
+    "restore": "node scripts/restore.js",
+    "scheduled-backup": "node scripts/scheduled-backup.js",
+    "generate-test-users": "node scripts/generate-test-users.js",
+    "cleanup-test-users": "node scripts/cleanup-test-users.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
@@ -21,6 +26,7 @@
     "@types/nodemailer": "^6.4.17",
     "bcryptjs": "^3.0.2",
     "chart.js": "^4.4.9",
+    "dotenv": "^16.3.1",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.14.1",
     "next": "15.3.1",

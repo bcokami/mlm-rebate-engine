@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import Link from "next/link";
-import { FaUsers, FaShoppingCart, FaWallet, FaChartLine, FaCog } from "react-icons/fa";
+import { FaUsers, FaShoppingCart, FaWallet, FaChartLine, FaCog, FaUsersCog } from "react-icons/fa";
 
 export default function AdminDashboardPage() {
   const { data: session, status } = useSession();
@@ -200,6 +200,24 @@ export default function AdminDashboardPage() {
               className="inline-block px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
             >
               View Reports
+            </Link>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center mb-4">
+              <div className="p-3 rounded-full bg-indigo-100 text-indigo-500 mr-4">
+                <FaUsersCog className="h-6 w-6" />
+              </div>
+              <h2 className="text-lg font-semibold">Test User Management</h2>
+            </div>
+            <p className="text-gray-500 mb-4">
+              Generate and manage test users for development and testing.
+            </p>
+            <Link
+              href="/admin/test-users"
+              className="inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            >
+              Manage Test Users
             </Link>
           </div>
 
