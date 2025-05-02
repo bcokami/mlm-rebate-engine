@@ -4,23 +4,23 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-import { 
-  FaChartBar, 
-  FaChartLine, 
-  FaChartPie, 
-  FaDownload, 
+import {
+  FaChartBar,
+  FaChartLine,
+  FaChartPie,
+  FaDownload,
   FaCalendarAlt,
   FaUsers,
   FaShoppingCart,
   FaWallet
 } from "react-icons/fa";
-import { 
-  Chart as ChartJS, 
-  CategoryScale, 
-  LinearScale, 
-  BarElement, 
-  Title, 
-  Tooltip, 
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
   Legend,
   PointElement,
   LineElement,
@@ -107,11 +107,11 @@ export default function AdminReportsPage() {
 
   const fetchReportData = async () => {
     setLoading(true);
-    
+
     try {
       // In a real application, we would fetch this data from the API
       // For now, we'll use mock data
-      
+
       // Mock data for demonstration
       const mockData: ReportData = {
         salesByProduct: {
@@ -153,7 +153,7 @@ export default function AdminReportsPage() {
           conversionRate: 0.68,
         },
       };
-      
+
       setReportData(mockData);
       setLoading(false);
     } catch (error) {
@@ -235,7 +235,7 @@ export default function AdminReportsPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-white rounded-lg shadow p-4">
                 <div className="flex items-center">
                   <div className="p-3 rounded-full bg-green-100 text-green-500 mr-4">
@@ -243,11 +243,11 @@ export default function AdminReportsPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 font-medium">Total Sales</p>
-                    <p className="text-xl font-semibold">${reportData.summary.totalSales.toLocaleString()}</p>
+                    <p className="text-xl font-semibold">₱{reportData.summary.totalSales.toLocaleString()}</p>
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-white rounded-lg shadow p-4">
                 <div className="flex items-center">
                   <div className="p-3 rounded-full bg-purple-100 text-purple-500 mr-4">
@@ -255,11 +255,11 @@ export default function AdminReportsPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 font-medium">Total Rebates</p>
-                    <p className="text-xl font-semibold">${reportData.summary.totalRebates.toLocaleString()}</p>
+                    <p className="text-xl font-semibold">₱{reportData.summary.totalRebates.toLocaleString()}</p>
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-white rounded-lg shadow p-4">
                 <div className="flex items-center">
                   <div className="p-3 rounded-full bg-yellow-100 text-yellow-500 mr-4">
@@ -267,11 +267,11 @@ export default function AdminReportsPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 font-medium">Avg. Order Value</p>
-                    <p className="text-xl font-semibold">${reportData.summary.averageOrderValue.toLocaleString()}</p>
+                    <p className="text-xl font-semibold">₱{reportData.summary.averageOrderValue.toLocaleString()}</p>
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-white rounded-lg shadow p-4">
                 <div className="flex items-center">
                   <div className="p-3 rounded-full bg-red-100 text-red-500 mr-4">
@@ -283,7 +283,7 @@ export default function AdminReportsPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-white rounded-lg shadow p-4">
                 <div className="flex items-center">
                   <div className="p-3 rounded-full bg-indigo-100 text-indigo-500 mr-4">
@@ -318,7 +318,7 @@ export default function AdminReportsPage() {
                       labels: reportData.salesByProduct.labels,
                       datasets: [
                         {
-                          label: 'Sales ($)',
+                          label: 'Sales (₱)',
                           data: reportData.salesByProduct.data,
                           backgroundColor: 'rgba(59, 130, 246, 0.5)',
                           borderColor: 'rgb(59, 130, 246)',
@@ -361,7 +361,7 @@ export default function AdminReportsPage() {
                       labels: reportData.salesByDate.labels,
                       datasets: [
                         {
-                          label: 'Sales ($)',
+                          label: 'Sales (₱)',
                           data: reportData.salesByDate.data,
                           borderColor: 'rgb(34, 197, 94)',
                           backgroundColor: 'rgba(34, 197, 94, 0.5)',
@@ -407,7 +407,7 @@ export default function AdminReportsPage() {
                       labels: reportData.rebatesByLevel.labels,
                       datasets: [
                         {
-                          label: 'Rebates ($)',
+                          label: 'Rebates (₱)',
                           data: reportData.rebatesByLevel.data,
                           backgroundColor: 'rgba(139, 92, 246, 0.5)',
                           borderColor: 'rgb(139, 92, 246)',
@@ -551,7 +551,7 @@ export default function AdminReportsPage() {
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              ${user.totalRebates.toLocaleString()}
+                              ₱{user.totalRebates.toLocaleString()}
                             </td>
                           </tr>
                         ))}

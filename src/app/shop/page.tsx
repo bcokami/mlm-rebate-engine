@@ -161,7 +161,7 @@ export default function ShopPage() {
                 <h2 className="text-xl font-semibold mb-2">{product.name}</h2>
                 <p className="text-gray-600 mb-4">{product.description}</p>
                 <div className="flex justify-between items-center mb-4">
-                  <span className="text-2xl font-bold">${product.price.toFixed(2)}</span>
+                  <span className="text-2xl font-bold">₱{product.price.toFixed(2)}</span>
                 </div>
 
                 <div className="mb-4">

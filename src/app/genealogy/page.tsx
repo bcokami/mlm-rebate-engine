@@ -243,7 +243,7 @@ export default function GenealogyPage() {
               </div>
               <div className="bg-yellow-50 p-3 rounded-md">
                 <div className="text-sm text-gray-500">Downline Earnings</div>
-                <div className="text-xl font-semibold">${statistics.totalDownlineBalance.toFixed(2)}</div>
+                <div className="text-xl font-semibold">₱{statistics.totalDownlineBalance.toFixed(2)}</div>
               </div>
             </div>
 

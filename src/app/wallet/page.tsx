@@ -150,7 +150,7 @@ export default function WalletPage() {
                 <h2 className="text-xl font-semibold">Wallet Balance</h2>
               </div>
               <div className="text-3xl font-bold mb-4">
-                ${walletData.balance.toFixed(2)}
+                ₱{walletData.balance.toFixed(2)}
               </div>
 
               {/* Withdrawal Form */}
@@ -280,7 +280,7 @@ export default function WalletPage() {
                                     : "text-green-600"
                                 }
                               >
-                                {transaction.type === "withdrawal" ? "-" : "+"}$
+                                {transaction.type === "withdrawal" ? "-" : "+"}₱
                                 {transaction.amount.toFixed(2)}
                               </span>
                             </td>

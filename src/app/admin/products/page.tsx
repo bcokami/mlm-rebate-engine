@@ -84,10 +84,10 @@ export default function AdminProductsPage() {
   };
 
   const addRebateConfig = () => {
-    const nextLevel = rebateConfigs.length > 0 
-      ? Math.max(...rebateConfigs.map(c => c.level)) + 1 
+    const nextLevel = rebateConfigs.length > 0
+      ? Math.max(...rebateConfigs.map(c => c.level)) + 1
       : 1;
-    
+
     setRebateConfigs([...rebateConfigs, { level: nextLevel, percentage: "5" }]);
   };
 
@@ -117,12 +117,12 @@ export default function AdminProductsPage() {
       price: product.price.toString(),
       image: product.image || "",
     });
-    
+
     const configs = product.rebateConfigs.map(config => ({
       level: config.level,
       percentage: config.percentage.toString(),
     }));
-    
+
     setRebateConfigs(configs.length > 0 ? configs : [{ level: 1, percentage: "10" }]);
     setShowForm(true);
   };
@@ -141,9 +141,9 @@ export default function AdminProductsPage() {
       // Validate rebate configs
       for (const config of rebateConfigs) {
         if (config.level <= 0 || parseFloat(config.percentage) <= 0) {
-          setMessage({ 
-            type: "error", 
-            text: "Rebate level and percentage must be greater than 0" 
+          setMessage({
+            type: "error",
+            text: "Rebate level and percentage must be greater than 0"
           });
           return;
         }
@@ -192,20 +192,20 @@ export default function AdminProductsPage() {
         throw new Error(data.error || "Failed to save product");
       }
 
-      setMessage({ 
-        type: "success", 
-        text: editingProduct 
-          ? "Product updated successfully" 
-          : "Product created successfully" 
+      setMessage({
+        type: "success",
+        text: editingProduct
+          ? "Product updated successfully"
+          : "Product created successfully"
       });
 
       // Refresh products list
       fetchProducts();
       resetForm();
     } catch (error: any) {
-      setMessage({ 
-        type: "error", 
-        text: error.message || "An error occurred while saving the product" 
+      setMessage({
+        type: "error",
+        text: error.message || "An error occurred while saving the product"
       });
     }
   };
@@ -474,7 +474,7 @@ export default function AdminProductsPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          ${product.price.toFixed(2)}
+                          ₱{product.price.toFixed(2)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span

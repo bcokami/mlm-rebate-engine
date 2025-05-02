@@ -125,7 +125,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-500 font-medium">
                   Wallet Balance
                 </p>
-                <p className="text-2xl font-semibold">${stats.walletBalance.toFixed(2)}</p>
+                <p className="text-2xl font-semibold">₱{stats.walletBalance.toFixed(2)}</p>
               </div>
             </div>
           </div>
@@ -139,7 +139,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-500 font-medium">
                   Total Rebates
                 </p>
-                <p className="text-2xl font-semibold">${stats.totalRebates.toFixed(2)}</p>
+                <p className="text-2xl font-semibold">₱{stats.totalRebates.toFixed(2)}</p>
               </div>
             </div>
           </div>
@@ -205,7 +205,7 @@ export default function DashboardPage() {
                           {rebate.generator.name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                          ${rebate.amount.toFixed(2)}
+                          ₱{rebate.amount.toFixed(2)}
                         </td>
                       </tr>
                     ))}

@@ -47,10 +47,10 @@ export default function RebatesPage() {
       // Fetch rebates
       const fetchRebates = async () => {
         try {
-          const url = filter === "all" 
-            ? "/api/rebates" 
+          const url = filter === "all"
+            ? "/api/rebates"
             : `/api/rebates?status=${filter}`;
-            
+
           const response = await fetch(url);
           const data = await response.json();
           setRebates(data);
@@ -193,7 +193,7 @@ export default function RebatesPage() {
                           {rebate.percentage}%
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                          ${rebate.amount.toFixed(2)}
+                          ₱{rebate.amount.toFixed(2)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
