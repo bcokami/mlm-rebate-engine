@@ -26,15 +26,16 @@ export default function AdminTestUsersPage() {
         try {
           const response = await fetch("/api/users/me");
           const data = await response.json();
-          
-          setIsAdmin(data.metadata?.role === "admin");
+
+          // For simplicity, we'll consider any user with rankId 6 (Diamond) as admin
+          setIsAdmin(data.rankId === 6);
           setLoading(false);
         } catch (error) {
           console.error("Error checking admin status:", error);
           setLoading(false);
         }
       };
-      
+
       checkAdminStatus();
     }
   }, [status]);

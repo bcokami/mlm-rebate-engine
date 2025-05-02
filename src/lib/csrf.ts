@@ -18,10 +18,21 @@ export function verifyCsrfToken(token: string, expectedToken: string): boolean {
   if (!token || !expectedToken) {
     return false;
   }
-  
-  // Use constant-time comparison to prevent timing attacks
-  return crypto.timingSafeEqual(
-    Buffer.from(token),
-    Buffer.from(expectedToken)
-  );
+
+  try {
+    // Ensure both buffers are the same length for timingSafeEqual
+    const tokenBuf = Buffer.from(token);
+    const expectedTokenBuf = Buffer.from(expectedToken);
+
+    // If lengths are different, return false
+    if (tokenBuf.length !== expectedTokenBuf.length) {
+      return false;
+    }
+
+    // Use constant-time comparison to prevent timing attacks
+    return crypto.timingSafeEqual(tokenBuf, expectedTokenBuf);
+  } catch (error) {
+    console.error('Error verifying CSRF token:', error);
+    return false;
+  }
 }

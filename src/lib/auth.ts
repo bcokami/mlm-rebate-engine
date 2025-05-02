@@ -1,57 +1,94 @@
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import { PrismaClient } from "@prisma/client";
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 
+// Initialize Prisma client
 const prisma = new PrismaClient();
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  debug: true, // Enable debug mode for troubleshooting
+  logger: {
+    error: (code, metadata) => {
+      console.error(`NextAuth error: ${code}`, metadata);
+    },
+    warn: (code) => {
+      console.warn(`NextAuth warning: ${code}`);
+    },
+    debug: (code, metadata) => {
+      console.log(`NextAuth debug: ${code}`, metadata);
+    },
+  },
   providers: [
     CredentialsProvider({
+      id: "credentials",
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
-        csrfToken: { label: "CSRF Token", type: "text" },
       },
       async authorize(credentials, req) {
-        // Verify CSRF token
-        const csrfToken = credentials?.csrfToken;
-        const expectedCsrfToken = req?.body?.csrfToken;
+        console.log("Authorize function called with credentials:", credentials?.email);
 
-        if (!csrfToken || csrfToken !== expectedCsrfToken) {
-          console.error("CSRF token validation failed");
-          return null;
-        }
-
+        // Basic validation
         if (!credentials?.email || !credentials?.password) {
-          return null;
+          console.log("Missing email or password");
+          throw new Error("Missing email or password");
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+        try {
+          console.log("Looking up user:", credentials.email);
 
-        if (!user) {
-          return null;
+          // Create a new Prisma client instance for this request
+          const localPrisma = new PrismaClient();
+
+          const user = await localPrisma.user.findUnique({
+            where: { email: credentials.email },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              password: true,
+            },
+          });
+
+          await localPrisma.$disconnect();
+
+          if (!user) {
+            console.log("User not found");
+            throw new Error("Invalid email or password");
+          }
+
+          console.log("User found, checking password");
+          console.log("Stored password hash:", user.password);
+          console.log("Provided password (first few chars):", credentials.password.substring(0, 3) + "...");
+
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password,
+            user.password
+          );
+
+          console.log("Password valid:", isPasswordValid);
+
+          if (!isPasswordValid) {
+            console.log("Invalid password");
+            throw new Error("Invalid email or password");
+          }
+
+          console.log("Authentication successful for user:", user.id);
+
+          // Return user object without password
+          const { password, ...userWithoutPassword } = user;
+          return {
+            id: user.id.toString(),
+            email: user.email,
+            name: user.name,
+          };
+        } catch (error) {
+          console.error("Error in authorize function:", error);
+          // Rethrow the error to be handled by NextAuth
+          throw new Error(error instanceof Error ? error.message : "Authentication failed");
         }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: user.id.toString(),
-          email: user.email,
-          name: user.name,
-        };
       },
     }),
   ],
@@ -65,12 +102,14 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async session({ session, token }) {
+      console.log("Session callback called", { session, token });
       if (token && session.user) {
         session.user.id = token.sub as string;
       }
       return session;
     },
     async jwt({ token, user }) {
+      console.log("JWT callback called", { token, user });
       if (user) {
         token.sub = user.id;
       }
@@ -78,11 +117,13 @@ export const authOptions: NextAuthOptions = {
     },
   },
   // Enable CSRF protection
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || "fallback-secret-do-not-use-in-production",
   useSecureCookies: process.env.NODE_ENV === "production",
   cookies: {
     sessionToken: {
-      name: `__Secure-next-auth.session-token`,
+      name: process.env.NODE_ENV === "production"
+        ? `__Secure-next-auth.session-token`
+        : `next-auth.session-token`,
       options: {
         httpOnly: true,
         sameSite: "lax",

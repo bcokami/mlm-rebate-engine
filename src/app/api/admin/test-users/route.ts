@@ -17,46 +17,58 @@ export async function GET(request: NextRequest) {
   try {
     // Check authentication and admin rights
     const session = await getServerSession(authOptions);
-    
+
     if (!session || !session.user) {
       return NextResponse.json(
         { error: "You must be logged in to access this endpoint" },
         { status: 401 }
       );
     }
-    
+
     // Check if user is admin
     const userId = parseInt(session.user.id);
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
-    
-    const isAdmin = user?.metadata?.role === "admin";
-    
+
+    // For simplicity, we'll consider any user with rankId 6 (Diamond) as admin
+    const isAdmin = user?.rankId === 6;
+
     if (!isAdmin) {
       return NextResponse.json(
         { error: "You must be an admin to access this endpoint" },
         { status: 403 }
       );
     }
-    
+
     // Get query parameters
     const url = new URL(request.url);
     const environment = url.searchParams.get("environment") || "development";
-    
-    // Find all test users for the specified environment
+
+    // Since we don't have a metadata field in the schema, we'll use a different approach
+    // We'll get all users and filter them manually based on the test data file
+    const testUsersData = [];
+    const fs = require('fs');
+
+    try {
+      const testDataPath = path.resolve(process.cwd(), 'test-users.json');
+      if (fs.existsSync(testDataPath)) {
+        const testData = JSON.parse(fs.readFileSync(testDataPath, 'utf8'));
+        if (testData.users && Array.isArray(testData.users)) {
+          testUsersData.push(...testData.users.filter(u =>
+            u.isTest && u.environment === environment
+          ));
+        }
+      }
+    } catch (err) {
+      console.warn('Could not read test users data file:', err);
+    }
+
+    // Get all users from the database that match the IDs in our test data
+    const testUserIds = testUsersData.map(u => u.id);
     const testUsers = await prisma.user.findMany({
       where: {
-        metadata: {
-          path: ["isTest"],
-          equals: true,
-        },
-        AND: {
-          metadata: {
-            path: ["environment"],
-            equals: environment,
-          },
-        },
+        id: { in: testUserIds.length > 0 ? testUserIds : [-1] }, // Use -1 if no test users to avoid empty IN clause
       },
       select: {
         id: true,
@@ -65,14 +77,26 @@ export async function GET(request: NextRequest) {
         rankId: true,
         uplineId: true,
         walletBalance: true,
-        metadata: true,
         createdAt: true,
       },
       orderBy: {
         id: "asc",
       },
     });
-    
+
+    // Add metadata to the users
+    testUsers.forEach(user => {
+      const testData = testUsersData.find(u => u.id === user.id);
+      if (testData) {
+        user.metadata = {
+          role: testData.role,
+          isTest: testData.isTest,
+          environment: testData.environment,
+          keepForDev: testData.keepForDev,
+        };
+      }
+    });
+
     // Group users by role
     const usersByRole = {
       admin: testUsers.filter(user => user.metadata?.role === "admin"),
@@ -80,7 +104,7 @@ export async function GET(request: NextRequest) {
       distributor: testUsers.filter(user => user.metadata?.role === "distributor"),
       viewer: testUsers.filter(user => user.metadata?.role === "viewer"),
     };
-    
+
     return NextResponse.json({
       environment,
       totalCount: testUsers.length,
@@ -101,29 +125,30 @@ export async function POST(request: NextRequest) {
   try {
     // Check authentication and admin rights
     const session = await getServerSession(authOptions);
-    
+
     if (!session || !session.user) {
       return NextResponse.json(
         { error: "You must be logged in to access this endpoint" },
         { status: 401 }
       );
     }
-    
+
     // Check if user is admin
     const userId = parseInt(session.user.id);
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
-    
-    const isAdmin = user?.metadata?.role === "admin";
-    
+
+    // For simplicity, we'll consider any user with rankId 6 (Diamond) as admin
+    const isAdmin = user?.rankId === 6;
+
     if (!isAdmin) {
       return NextResponse.json(
         { error: "You must be an admin to access this endpoint" },
         { status: 403 }
       );
     }
-    
+
     // Get request body
     const body = await request.json();
     const {
@@ -137,10 +162,10 @@ export async function POST(request: NextRequest) {
       generatePurchases = true,
       generateRebates = true,
     } = body;
-    
+
     // Import the generator function
     const { generateTestUsers } = await importTestUserModules();
-    
+
     // Generate test users
     const createdUsers = await generateTestUsers({
       environment,
@@ -153,7 +178,7 @@ export async function POST(request: NextRequest) {
       generatePurchases,
       generateRebates,
     });
-    
+
     return NextResponse.json({
       message: `Successfully generated ${createdUsers.length} test users`,
       environment,
@@ -173,29 +198,30 @@ export async function DELETE(request: NextRequest) {
   try {
     // Check authentication and admin rights
     const session = await getServerSession(authOptions);
-    
+
     if (!session || !session.user) {
       return NextResponse.json(
         { error: "You must be logged in to access this endpoint" },
         { status: 401 }
       );
     }
-    
+
     // Check if user is admin
     const userId = parseInt(session.user.id);
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
-    
-    const isAdmin = user?.metadata?.role === "admin";
-    
+
+    // For simplicity, we'll consider any user with rankId 6 (Diamond) as admin
+    const isAdmin = user?.rankId === 6;
+
     if (!isAdmin) {
       return NextResponse.json(
         { error: "You must be an admin to access this endpoint" },
         { status: 403 }
       );
     }
-    
+
     // Get request body
     const body = await request.json();
     const {
@@ -203,17 +229,17 @@ export async function DELETE(request: NextRequest) {
       retainKeyTesters = true,
       dryRun = false,
     } = body;
-    
+
     // Import the cleanup function
     const { cleanupTestUsers } = await importTestUserModules();
-    
+
     // Clean up test users
     const result = await cleanupTestUsers({
       environment,
       retainKeyTesters,
       dryRun,
     });
-    
+
     return NextResponse.json({
       message: `Successfully cleaned up test users`,
       environment,

@@ -40,7 +40,18 @@ export default function ShopPage() {
         try {
           const response = await fetch("/api/products");
           const data = await response.json();
-          setProducts(data);
+
+          // Check if data has a products property (API returns { products, pagination })
+          if (data && data.products && Array.isArray(data.products)) {
+            setProducts(data.products);
+          } else if (Array.isArray(data)) {
+            // Fallback in case API returns array directly
+            setProducts(data);
+          } else {
+            console.error("Unexpected products data format:", data);
+            setProducts([]);
+          }
+
           setLoading(false);
         } catch (error) {
           console.error("Error fetching products:", error);
@@ -84,7 +95,17 @@ export default function ShopPage() {
       // Refresh products after purchase
       const productsResponse = await fetch("/api/products");
       const productsData = await productsResponse.json();
-      setProducts(productsData);
+
+      // Check if data has a products property (API returns { products, pagination })
+      if (productsData && productsData.products && Array.isArray(productsData.products)) {
+        setProducts(productsData.products);
+      } else if (Array.isArray(productsData)) {
+        // Fallback in case API returns array directly
+        setProducts(productsData);
+      } else {
+        console.error("Unexpected products data format:", productsData);
+        setProducts([]);
+      }
     } catch (error: any) {
       setMessage({
         type: "error",

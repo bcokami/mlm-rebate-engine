@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,107 +7,100 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Define the Rank model
 model Rank {
   id          Int      @id @default(autoincrement())
   name        String   @unique
   level       Int      @unique
   description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   users       User[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }
 
-// Define the User model
 model User {
-  id                Int           @id @default(autoincrement())
-  email             String        @unique
-  password          String
-  name              String
-  phone             String?
-  rankId            Int           @default(1)
-  rank              Rank          @relation(fields: [rankId], references: [id])
-  uplineId          Int?
-  upline            User?         @relation("Downline", fields: [uplineId], references: [id])
-  downline          User[]        @relation("Downline")
-  walletBalance     Float         @default(0)
-  purchases         Purchase[]
-  rebatesReceived   Rebate[]      @relation("RebateReceiver")
-  rebatesGenerated  Rebate[]      @relation("RebateGenerator")
+  id                 Int                 @id @default(autoincrement())
+  email              String              @unique
+  password           String
+  name               String
+  phone              String?
+  rankId             Int                 @default(1)
+  uplineId           Int?
+  walletBalance      Float               @default(0)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  purchases          Purchase[]
+  rebatesGenerated   Rebate[]            @relation("RebateGenerator")
+  rebatesReceived    Rebate[]            @relation("RebateReceiver")
+  upline             User?               @relation("Downline", fields: [uplineId], references: [id])
+  downline           User[]              @relation("Downline")
+  rank               Rank                @relation(fields: [rankId], references: [id])
   walletTransactions WalletTransaction[]
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
 }
 
-// Define the Product model
 model Product {
-  id          Int         @id @default(autoincrement())
-  name        String
-  description String?
-  price       Float
-  image       String?
-  isActive    Boolean     @default(true)
-  purchases   Purchase[]
+  id            Int            @id @default(autoincrement())
+  name          String
+  description   String?
+  price         Float
+  image         String?
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  purchases     Purchase[]
   rebateConfigs RebateConfig[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
 }
 
-// Define the RebateConfig model
 model RebateConfig {
-  id          Int      @id @default(autoincrement())
-  productId   Int
-  product     Product  @relation(fields: [productId], references: [id])
-  level       Int
-  percentage  Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         Int      @id @default(autoincrement())
+  productId  Int
+  level      Int
+  percentage Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  product    Product  @relation(fields: [productId], references: [id])
 
   @@unique([productId, level])
 }
 
-// Define the Purchase model
 model Purchase {
-  id          Int       @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   userId      Int
-  user        User      @relation(fields: [userId], references: [id])
   productId   Int
-  product     Product   @relation(fields: [productId], references: [id])
   quantity    Int
   totalAmount Float
-  status      String    @default("completed")
+  status      String   @default("completed")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  product     Product  @relation(fields: [productId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
   rebates     Rebate[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
 }
 
-// Define the Rebate model
 model Rebate {
-  id              Int       @id @default(autoincrement())
-  purchaseId      Int
-  purchase        Purchase  @relation(fields: [purchaseId], references: [id])
-  receiverId      Int
-  receiver        User      @relation("RebateReceiver", fields: [receiverId], references: [id])
-  generatorId     Int
-  generator       User      @relation("RebateGenerator", fields: [generatorId], references: [id])
-  level           Int
-  percentage      Float
-  amount          Float
-  status          String    @default("pending") // pending, processed, failed
-  processedAt     DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-}
-
-// Define the WalletTransaction model
-model WalletTransaction {
   id          Int       @id @default(autoincrement())
-  userId      Int
-  user        User      @relation(fields: [userId], references: [id])
+  purchaseId  Int
+  receiverId  Int
+  generatorId Int
+  level       Int
+  percentage  Float
   amount      Float
-  type        String    // deposit, withdrawal, rebate
-  status      String    @default("completed")
-  description String?
+  status      String    @default("pending")
+  processedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  generator   User      @relation("RebateGenerator", fields: [generatorId], references: [id])
+  receiver    User      @relation("RebateReceiver", fields: [receiverId], references: [id])
+  purchase    Purchase  @relation(fields: [purchaseId], references: [id])
+}
+
+model WalletTransaction {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  amount      Float
+  type        String
+  status      String   @default("completed")
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
 }

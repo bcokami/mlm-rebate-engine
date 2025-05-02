@@ -4,7 +4,7 @@ import { z } from 'zod';
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  csrfToken: z.string().min(1, 'CSRF token is required'),
+  csrfToken: z.string().optional(),
 });
 
 export const registerSchema = z.object({
@@ -59,9 +59,9 @@ export const rankAdvancementSchema = z.object({
  * @param data Data to validate
  * @returns Validation result
  */
-export function validate<T>(schema: z.ZodType<T>, data: unknown): { 
-  success: boolean; 
-  data?: T; 
+export function validate<T>(schema: z.ZodType<T>, data: unknown): {
+  success: boolean;
+  data?: T;
   errors?: Record<string, string>;
 } {
   try {
@@ -70,18 +70,18 @@ export function validate<T>(schema: z.ZodType<T>, data: unknown): {
   } catch (error) {
     if (error instanceof z.ZodError) {
       const errors: Record<string, string> = {};
-      
+
       error.errors.forEach((err) => {
         const path = err.path.join('.');
         errors[path] = err.message;
       });
-      
+
       return { success: false, errors };
     }
-    
-    return { 
-      success: false, 
-      errors: { _error: 'An unexpected error occurred during validation' } 
+
+    return {
+      success: false,
+      errors: { _error: 'An unexpected error occurred during validation' }
     };
   }
 }

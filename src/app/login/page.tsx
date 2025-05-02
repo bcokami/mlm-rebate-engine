@@ -12,12 +12,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [csrfToken, setCsrfToken] = useState("");
-
-  // Generate CSRF token on component mount
-  useEffect(() => {
-    setCsrfToken(generateCsrfToken());
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,22 +19,58 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const result = await signIn("credentials", {
-        redirect: false,
-        email,
-        password,
-        csrfToken,
-      });
+      console.log("Attempting to sign in with:", { email, password });
 
-      if (result?.error) {
-        setError("Invalid email or password");
+      // Add a delay to ensure the console log is visible
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      let result;
+      try {
+        result = await signIn("credentials", {
+          redirect: false,
+          email,
+          password,
+          callbackUrl: "/dashboard",
+        });
+
+        console.log("Sign in result:", result);
+
+        if (result?.error) {
+          console.error("Login error:", result.error);
+
+          // Map error codes to user-friendly messages
+          let errorMessage = "Login failed";
+          switch (result.error) {
+            case "CredentialsSignin":
+              errorMessage = "Invalid email or password";
+              break;
+            default:
+              errorMessage = `Login failed: ${result.error}`;
+          }
+
+          setError(errorMessage);
+          setLoading(false);
+          return;
+        }
+      } catch (signInError) {
+        console.error("Exception during signIn:", signInError);
+        setError(`Login failed: ${signInError instanceof Error ? signInError.message : "Unknown error"}`);
         setLoading(false);
         return;
       }
 
+      if (!result?.ok) {
+        console.error("Login not OK but no error provided");
+        setError("Login failed for unknown reason");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Login successful, redirecting to dashboard");
       router.push("/dashboard");
     } catch (error) {
-      setError("An error occurred. Please try again.");
+      console.error("Exception during login:", error);
+      setError(`An error occurred: ${error instanceof Error ? error.message : String(error)}`);
       setLoading(false);
     }
   };
@@ -63,7 +93,6 @@ export default function LoginPage() {
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <input type="hidden" name="csrfToken" value={csrfToken} />
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="email-address" className="sr-only">

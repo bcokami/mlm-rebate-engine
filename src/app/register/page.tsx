@@ -27,6 +27,8 @@ export default function RegisterPage() {
     setLoading(true);
     setError("");
 
+    console.log("Registration form submitted:", { ...formData, password: "***" });
+
     // Validate form
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
@@ -34,30 +36,54 @@ export default function RegisterPage() {
       return;
     }
 
+    // Validate password length
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters long");
+      setLoading(false);
+      return;
+    }
+
     try {
+      console.log("Sending registration request to API");
+
+      const requestBody = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        phone: formData.phone,
+        uplineId: formData.uplineId || undefined,
+      };
+
+      console.log("Request body:", { ...requestBody, password: "***", confirmPassword: "***" });
+
       const response = await fetch("/api/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          phone: formData.phone,
-          uplineId: formData.uplineId || undefined,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      console.log("Registration response status:", response.status);
+
       const data = await response.json();
+      console.log("Registration response data:", data);
 
       if (!response.ok) {
+        if (data.errors) {
+          // Format validation errors
+          const errorMessages = Object.values(data.errors).join(", ");
+          throw new Error(errorMessages || "Validation failed");
+        }
         throw new Error(data.error || "Failed to register");
       }
 
+      console.log("Registration successful, redirecting to login page");
       // Redirect to login page
       router.push("/login?registered=true");
     } catch (error: any) {
+      console.error("Registration error:", error);
       setError(error.message || "An error occurred during registration");
       setLoading(false);
     }

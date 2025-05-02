@@ -1,6 +1,6 @@
 /**
  * MLM Test User Generator
- * 
+ *
  * This script generates test users with different roles and creates a realistic MLM structure.
  * Users are tagged with environment and test flags for easy management.
  */
@@ -38,7 +38,7 @@ const config = { ...DEFAULT_CONFIG };
 for (let i = 0; i < args.length; i += 2) {
   const key = args[i].replace('--', '');
   const value = args[i + 1];
-  
+
   if (key === 'environment' && (value === 'development' || value === 'staging')) {
     config[key] = value;
   } else if (key === 'generatePurchases' || key === 'generateRebates') {
@@ -52,23 +52,23 @@ for (let i = 0; i < args.length; i += 2) {
 
 // Sample data for generating realistic test users
 const FIRST_NAMES = [
-  'James', 'Mary', 'John', 'Patricia', 'Robert', 'Jennifer', 'Michael', 'Linda', 
-  'William', 'Elizabeth', 'David', 'Susan', 'Richard', 'Jessica', 'Joseph', 'Sarah', 
-  'Thomas', 'Karen', 'Charles', 'Nancy', 'Christopher', 'Lisa', 'Daniel', 'Margaret', 
-  'Matthew', 'Betty', 'Anthony', 'Sandra', 'Mark', 'Ashley', 'Donald', 'Kimberly', 
+  'James', 'Mary', 'John', 'Patricia', 'Robert', 'Jennifer', 'Michael', 'Linda',
+  'William', 'Elizabeth', 'David', 'Susan', 'Richard', 'Jessica', 'Joseph', 'Sarah',
+  'Thomas', 'Karen', 'Charles', 'Nancy', 'Christopher', 'Lisa', 'Daniel', 'Margaret',
+  'Matthew', 'Betty', 'Anthony', 'Sandra', 'Mark', 'Ashley', 'Donald', 'Kimberly',
   'Steven', 'Emily', 'Paul', 'Donna', 'Andrew', 'Michelle', 'Joshua', 'Carol'
 ];
 
 const LAST_NAMES = [
-  'Smith', 'Johnson', 'Williams', 'Jones', 'Brown', 'Davis', 'Miller', 'Wilson', 
-  'Moore', 'Taylor', 'Anderson', 'Thomas', 'Jackson', 'White', 'Harris', 'Martin', 
-  'Thompson', 'Garcia', 'Martinez', 'Robinson', 'Clark', 'Rodriguez', 'Lewis', 'Lee', 
-  'Walker', 'Hall', 'Allen', 'Young', 'Hernandez', 'King', 'Wright', 'Lopez', 
+  'Smith', 'Johnson', 'Williams', 'Jones', 'Brown', 'Davis', 'Miller', 'Wilson',
+  'Moore', 'Taylor', 'Anderson', 'Thomas', 'Jackson', 'White', 'Harris', 'Martin',
+  'Thompson', 'Garcia', 'Martinez', 'Robinson', 'Clark', 'Rodriguez', 'Lewis', 'Lee',
+  'Walker', 'Hall', 'Allen', 'Young', 'Hernandez', 'King', 'Wright', 'Lopez',
   'Hill', 'Scott', 'Green', 'Adams', 'Baker', 'Gonzalez', 'Nelson', 'Carter'
 ];
 
 const EMAIL_DOMAINS = [
-  'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 
+  'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com',
   'aol.com', 'protonmail.com', 'mail.com', 'zoho.com', 'yandex.com'
 ];
 
@@ -117,7 +117,7 @@ function generatePhone() {
 // Main function to generate test users
 async function generateTestUsers() {
   console.log(`Generating test users for ${config.environment} environment...`);
-  
+
   try {
     // Check if ranks exist, create them if not
     const existingRanks = await prisma.rank.findMany();
@@ -133,7 +133,7 @@ async function generateTestUsers() {
         });
       }
     }
-    
+
     // Check if products exist, create them if not
     const existingProducts = await prisma.product.findMany();
     if (existingProducts.length === 0) {
@@ -147,7 +147,7 @@ async function generateTestUsers() {
             image: `/products/${product.name.toLowerCase().replace(/\s+/g, '-')}.jpg`,
           },
         });
-        
+
         // Create rebate configs for each product
         for (let level = 1; level <= 10; level++) {
           const percentage = Math.max(20 - (level * 2), 0.5); // Decreasing percentage by level
@@ -161,11 +161,11 @@ async function generateTestUsers() {
         }
       }
     }
-    
+
     // Generate users
     const users = [];
     const password = await bcrypt.hash('password123', 10); // Same password for all test users
-    
+
     // Generate admin users
     for (let i = 0; i < config.adminCount; i++) {
       const name = generateName();
@@ -174,7 +174,7 @@ async function generateTestUsers() {
         email: generateEmail(name),
         password,
         phone: generatePhone(),
-        rankId: 6, // Diamond rank for admins
+        rank: { connect: { id: 6 } }, // Diamond rank for admins
         role: ROLES.ADMIN,
         isTest: true,
         environment: config.environment,
@@ -182,7 +182,7 @@ async function generateTestUsers() {
       };
       users.push(user);
     }
-    
+
     // Generate distributor users
     for (let i = 0; i < config.distributorCount; i++) {
       const name = generateName();
@@ -191,7 +191,7 @@ async function generateTestUsers() {
         email: generateEmail(name),
         password,
         phone: generatePhone(),
-        rankId: 1, // Starter rank for distributors
+        rank: { connect: { id: 1 } }, // Starter rank for distributors
         role: ROLES.DISTRIBUTOR,
         isTest: true,
         environment: config.environment,
@@ -199,7 +199,7 @@ async function generateTestUsers() {
       };
       users.push(user);
     }
-    
+
     // Generate ranked distributor users
     for (let i = 0; i < config.rankedDistributorCount; i++) {
       const name = generateName();
@@ -209,7 +209,7 @@ async function generateTestUsers() {
         email: generateEmail(name),
         password,
         phone: generatePhone(),
-        rankId,
+        rank: { connect: { id: rankId } },
         role: ROLES.RANKED_DISTRIBUTOR,
         isTest: true,
         environment: config.environment,
@@ -217,7 +217,7 @@ async function generateTestUsers() {
       };
       users.push(user);
     }
-    
+
     // Generate viewer users
     for (let i = 0; i < config.viewerCount; i++) {
       const name = generateName();
@@ -226,7 +226,7 @@ async function generateTestUsers() {
         email: generateEmail(name),
         password,
         phone: generatePhone(),
-        rankId: 1, // Starter rank for viewers
+        rank: { connect: { id: 1 } }, // Starter rank for viewers
         role: ROLES.VIEWER,
         isTest: true,
         environment: config.environment,
@@ -234,26 +234,30 @@ async function generateTestUsers() {
       };
       users.push(user);
     }
-    
+
     // Save users to database
     console.log(`Creating ${users.length} test users in database...`);
     const createdUsers = [];
-    
+
     for (const userData of users) {
       const { role, isTest, environment, keepForDev, ...userDataForPrisma } = userData;
-      
+
+      // Since there's no metadata field in the schema, we'll use a workaround
+      // We'll create the user without metadata and then manually add the role info
       const user = await prisma.user.create({
         data: {
           ...userDataForPrisma,
-          metadata: {
-            role,
-            isTest,
-            environment,
-            keepForDev,
-          },
         },
       });
-      
+
+      // Store the metadata separately
+      user.metadata = {
+        role,
+        isTest,
+        environment,
+        keepForDev,
+      };
+
       createdUsers.push({
         ...user,
         role,
@@ -262,10 +266,10 @@ async function generateTestUsers() {
         keepForDev,
       });
     }
-    
+
     // Create MLM structure (assign uplines)
     console.log('Creating MLM structure...');
-    
+
     // Sort users by role importance (admins first, then ranked distributors, then distributors)
     const sortedUsers = [...createdUsers].sort((a, b) => {
       if (a.role === ROLES.ADMIN) return -1;
@@ -276,61 +280,61 @@ async function generateTestUsers() {
       if (b.role === ROLES.DISTRIBUTOR && a.role === ROLES.VIEWER) return 1;
       return 0;
     });
-    
+
     // Assign uplines to create a structured MLM tree
     // Skip the first user (top admin) as they have no upline
     for (let i = 1; i < sortedUsers.length; i++) {
       const user = sortedUsers[i];
-      
+
       // Determine the level in the MLM structure (1-10)
       const level = Math.min(Math.floor(i / 3) + 1, config.maxLevels);
-      
+
       // Find a potential upline from higher levels
-      const potentialUplines = sortedUsers.slice(0, i).filter(u => 
+      const potentialUplines = sortedUsers.slice(0, i).filter(u =>
         u.role !== ROLES.VIEWER && // Viewers can't be uplines
         u.id !== user.id // Can't be your own upline
       );
-      
+
       if (potentialUplines.length > 0) {
         const uplineIndex = Math.min(
           Math.floor(Math.random() * potentialUplines.length),
           potentialUplines.length - 1
         );
         const upline = potentialUplines[uplineIndex];
-        
+
         // Update user with upline
         await prisma.user.update({
           where: { id: user.id },
-          data: { uplineId: upline.id },
+          data: { upline: { connect: { id: upline.id } } },
         });
-        
+
         // Update the user object
         user.uplineId = upline.id;
       }
     }
-    
+
     // Generate purchases and rebates if enabled
     if (config.generatePurchases) {
       console.log('Generating purchase history...');
-      
+
       // Only distributors and ranked distributors make purchases
       const purchasingUsers = sortedUsers.filter(
         user => user.role === ROLES.DISTRIBUTOR || user.role === ROLES.RANKED_DISTRIBUTOR
       );
-      
+
       const products = await prisma.product.findMany({
         include: { rebateConfigs: true },
       });
-      
+
       for (const user of purchasingUsers) {
         // Generate 1-5 purchases per user
         const purchaseCount = Math.floor(Math.random() * 5) + 1;
-        
+
         for (let i = 0; i < purchaseCount; i++) {
           const product = getRandomElement(products);
           const quantity = Math.floor(Math.random() * 3) + 1;
           const totalAmount = product.price * quantity;
-          
+
           // Create purchase
           const purchase = await prisma.purchase.create({
             data: {
@@ -340,23 +344,23 @@ async function generateTestUsers() {
               totalAmount,
             },
           });
-          
+
           // Generate rebates if enabled
           if (config.generateRebates) {
             // Find all upline users
             let currentUser = user;
             let level = 1;
-            
+
             while (currentUser.uplineId && level <= 10) {
               const upline = sortedUsers.find(u => u.id === currentUser.uplineId);
               if (!upline) break;
-              
+
               // Find rebate config for this level
               const rebateConfig = product.rebateConfigs.find(rc => rc.level === level);
-              
+
               if (rebateConfig) {
                 const rebateAmount = totalAmount * (rebateConfig.percentage / 100);
-                
+
                 // Create rebate
                 await prisma.rebate.create({
                   data: {
@@ -370,13 +374,13 @@ async function generateTestUsers() {
                     processedAt: new Date(),
                   },
                 });
-                
+
                 // Update upline's wallet balance
                 await prisma.user.update({
                   where: { id: upline.id },
                   data: { walletBalance: { increment: rebateAmount } },
                 });
-                
+
                 // Create wallet transaction
                 await prisma.walletTransaction.create({
                   data: {
@@ -387,7 +391,7 @@ async function generateTestUsers() {
                   },
                 });
               }
-              
+
               currentUser = upline;
               level++;
             }
@@ -395,12 +399,12 @@ async function generateTestUsers() {
         }
       }
     }
-    
+
     // Save user data to JSON file
     fs.writeFileSync(
       config.outputJsonFile,
-      JSON.stringify({ 
-        config, 
+      JSON.stringify({
+        config,
         users: createdUsers.map(u => ({
           id: u.id,
           name: u.name,
@@ -414,10 +418,10 @@ async function generateTestUsers() {
         }))
       }, null, 2)
     );
-    
+
     console.log(`Successfully generated ${createdUsers.length} test users!`);
     console.log(`User data saved to ${config.outputJsonFile}`);
-    
+
     return createdUsers;
   } catch (error) {
     console.error('Error generating test users:', error);
