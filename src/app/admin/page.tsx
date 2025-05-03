@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import Link from "next/link";
-import { FaUsers, FaShoppingCart, FaWallet, FaChartLine, FaCog, FaUsersCog } from "react-icons/fa";
+import { FaUsers, FaShoppingCart, FaWallet, FaChartLine, FaCog, FaUsersCog, FaPercentage, FaDollarSign } from "react-icons/fa";
 
 export default function AdminDashboardPage() {
   const { data: session, status } = useSession();
@@ -157,13 +157,31 @@ export default function AdminDashboardPage() {
               <h2 className="text-lg font-semibold">Product Management</h2>
             </div>
             <p className="text-gray-500 mb-4">
-              Add, edit, and manage products and rebate configurations.
+              Add, edit, and manage products in the system.
             </p>
             <Link
               href="/admin/products"
               className="inline-block px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
             >
               Manage Products
+            </Link>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center mb-4">
+              <div className="p-3 rounded-full bg-yellow-100 text-yellow-500 mr-4">
+                <FaPercentage className="h-6 w-6" />
+              </div>
+              <h2 className="text-lg font-semibold">Rebate Configurations</h2>
+            </div>
+            <p className="text-gray-500 mb-4">
+              Configure percentage and fixed amount rebates for products.
+            </p>
+            <Link
+              href="/admin/rebate-configs"
+              className="inline-block px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+            >
+              Manage Rebate Configs
             </Link>
           </div>
 

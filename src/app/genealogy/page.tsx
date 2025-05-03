@@ -5,7 +5,21 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import GenealogyTree from "@/components/genealogy/GenealogyTree";
-import { FaUserPlus, FaUsers, FaSearch, FaChartBar, FaSpinner, FaChevronDown } from "react-icons/fa";
+import EnhancedGenealogyTree from "@/components/genealogy/EnhancedGenealogyTree";
+import {
+  FaUserPlus,
+  FaUsers,
+  FaSearch,
+  FaChartBar,
+  FaSpinner,
+  FaChevronDown,
+  FaDownload,
+  FaPrint,
+  FaShare,
+  FaLayerGroup,
+  FaWallet
+} from "react-icons/fa";
+// import { motion } from "framer-motion";
 
 interface GenealogyUser {
   id: number;
@@ -38,6 +52,7 @@ export default function GenealogyPage() {
     directDownlineCount: number;
   } | null>(null);
   const [showStats, setShowStats] = useState(true);
+  const [useEnhancedView, setUseEnhancedView] = useState(true);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -137,10 +152,33 @@ export default function GenealogyPage() {
   return (
     <MainLayout>
       <div>
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <h1 className="text-2xl font-semibold flex items-center">
-            <FaUsers className="mr-2 text-blue-500" /> Network Genealogy
+            <FaUsers className="mr-2 text-green-500" /> Network Genealogy
           </h1>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setUseEnhancedView(true)}
+              className={`px-4 py-2 rounded-md ${
+                useEnhancedView
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Enhanced View
+            </button>
+            <button
+              onClick={() => setUseEnhancedView(false)}
+              className={`px-4 py-2 rounded-md ${
+                !useEnhancedView
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Standard View
+            </button>
+          </div>
         </div>
 
         {/* Search and Controls */}
@@ -265,7 +303,7 @@ export default function GenealogyPage() {
           <div className="bg-white rounded-lg shadow p-3 mb-6">
             <button
               onClick={() => setShowStats(true)}
-              className="text-blue-500 hover:text-blue-700 flex items-center"
+              className="text-green-600 hover:text-green-700 flex items-center"
             >
               <FaChartBar className="mr-2" />
               <span>Show Network Statistics</span>
@@ -273,6 +311,19 @@ export default function GenealogyPage() {
             </button>
           </div>
         )}
+
+        {/* Action buttons */}
+        <div className="mb-6 flex flex-wrap gap-2">
+          <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            <FaDownload className="mr-2" /> Export Genealogy
+          </button>
+          <button className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+            <FaPrint className="mr-2" /> Print View
+          </button>
+          <button className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+            <FaShare className="mr-2" /> Share Network
+          </button>
+        </div>
 
         {/* Genealogy Tree */}
         <div className="bg-white rounded-lg shadow p-6">
@@ -282,15 +333,24 @@ export default function GenealogyPage() {
 
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <FaSpinner className="animate-spin text-blue-500 mr-2" />
+              <FaSpinner className="animate-spin text-green-500 mr-2" />
               <span>Loading genealogy data...</span>
             </div>
           ) : genealogy ? (
-            <GenealogyTree
-              data={genealogy}
-              maxDepth={maxLevel}
-              initialExpandedLevels={2}
-            />
+            useEnhancedView ? (
+              <EnhancedGenealogyTree
+                data={genealogy}
+                maxDepth={maxLevel}
+                initialExpandedLevels={2}
+                onUserSelect={(user) => console.log("Selected user:", user)}
+              />
+            ) : (
+              <GenealogyTree
+                data={genealogy}
+                maxDepth={maxLevel}
+                initialExpandedLevels={2}
+              />
+            )
           ) : (
             <p className="text-gray-500">No genealogy data available.</p>
           )}

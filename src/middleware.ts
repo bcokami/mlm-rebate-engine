@@ -43,9 +43,29 @@ export async function middleware(request: NextRequest) {
 
     // If the user is trying to access admin routes, check if they have admin privileges
     if (pathname.startsWith("/admin")) {
-      // TODO: Add proper admin check
-      // For now, we'll just check if the user ID is 1 (admin)
-      if (token.sub !== "1") {
+      try {
+        // Fetch the user from the database to check their rank
+        const response = await fetch(`${request.nextUrl.origin}/api/users/me`, {
+          headers: {
+            Cookie: request.headers.get('cookie') || '',
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          console.error('Failed to fetch user data:', response.statusText);
+          return NextResponse.redirect(new URL("/dashboard", request.url));
+        }
+
+        const userData = await response.json();
+
+        // Check if the user has Diamond rank (rankId 6)
+        if (!userData || userData.rankId !== 6) {
+          console.log('Access denied: User does not have admin privileges');
+          return NextResponse.redirect(new URL("/dashboard", request.url));
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
         return NextResponse.redirect(new URL("/dashboard", request.url));
       }
     }

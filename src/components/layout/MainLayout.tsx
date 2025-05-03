@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { FaHome, FaUsers, FaShoppingCart, FaWallet, FaChartLine, FaCog, FaUser } from 'react-icons/fa';
+import { FaHome, FaUsers, FaShoppingCart, FaWallet, FaChartLine, FaCog, FaUser, FaTrophy, FaInfoCircle } from 'react-icons/fa';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -51,9 +51,21 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 </Link>
               </li>
               <li>
+                <Link href="/rank-advancement" className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                  <FaTrophy className="mr-3" />
+                  <span>Rank Advancement</span>
+                </Link>
+              </li>
+              <li>
                 <Link href="/profile" className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
                   <FaUser className="mr-3" />
                   <span>My Profile</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/about" className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                  <FaInfoCircle className="mr-3" />
+                  <span>About Us</span>
                 </Link>
               </li>
               {/* Admin section */}
@@ -75,7 +87,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16">
               <div className="flex items-center">
-                <h1 className="text-xl font-semibold">MLM Rebate Engine</h1>
+                <Link href="/" className="flex items-center">
+                  <img src="/logo.svg" alt="Extreme Life Herbal Products Logo" className="h-10 w-10 mr-2" />
+                  <h1 className="text-xl font-semibold text-green-700">Extreme Life Herbal</h1>
+                </Link>
               </div>
               <div className="flex items-center">
                 {session ? (

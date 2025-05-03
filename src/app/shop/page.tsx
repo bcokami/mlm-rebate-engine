@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import Image from "next/image";
 import { FaShoppingCart } from "react-icons/fa";
+import ProductPlaceholder from "@/components/ProductPlaceholder";
 
 interface Product {
   id: number;
@@ -149,13 +150,18 @@ export default function ShopPage() {
               key={product.id}
               className="bg-white rounded-lg shadow overflow-hidden"
             >
-              <div className="h-48 relative">
-                <Image
-                  src={product.image || "/product-placeholder.jpg"}
-                  alt={product.name}
-                  fill
-                  className="object-cover"
-                />
+              <div className="h-48 relative bg-gray-50">
+                {product.image ? (
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                ) : (
+                  <ProductPlaceholder />
+                )}
               </div>
               <div className="p-6">
                 <h2 className="text-xl font-semibold mb-2">{product.name}</h2>

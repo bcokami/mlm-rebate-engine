@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
+import Image from "next/image";
+import ProductPlaceholder from "@/components/ProductPlaceholder";
 import {
   FaPlus, FaEdit, FaTrash, FaChevronDown, FaChevronUp,
   FaSearch, FaFilter, FaToggleOn, FaToggleOff, FaSpinner,
-  FaEye, FaCheck, FaTimes, FaImage
+  FaEye, FaCheck, FaTimes, FaImage, FaUpload, FaCamera
 } from "react-icons/fa";
 
 interface Product {
@@ -42,6 +44,10 @@ export default function AdminProductsPage() {
     price: "",
     image: "",
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [rebateConfigs, setRebateConfigs] = useState<RebateConfig[]>([
     { level: 1, percentage: "10" },
   ]);
@@ -117,6 +123,72 @@ export default function AdminProductsPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      setMessage({
+        type: "error",
+        text: "File type not allowed. Please upload a JPEG, PNG, WebP, or GIF image."
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      setMessage({
+        type: "error",
+        text: "File size exceeds the 5MB limit"
+      });
+      return;
+    }
+
+    setImageFile(file);
+
+    // Create a preview URL
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const uploadImage = async () => {
+    if (!imageFile) return null;
+
+    setUploadingImage(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", imageFile);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to upload image");
+      }
+
+      setUploadingImage(false);
+      return data.url;
+    } catch (error: any) {
+      setMessage({
+        type: "error",
+        text: error.message || "An error occurred while uploading the image"
+      });
+      setUploadingImage(false);
+      return null;
+    }
+  };
+
   const handleRebateConfigChange = (index: number, field: string, value: string) => {
     const updatedConfigs = [...rebateConfigs];
     updatedConfigs[index] = {
@@ -150,6 +222,11 @@ export default function AdminProductsPage() {
     setRebateConfigs([{ level: 1, percentage: "10" }]);
     setEditingProduct(null);
     setShowForm(false);
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleEditProduct = (product: Product) => {
@@ -160,6 +237,18 @@ export default function AdminProductsPage() {
       price: product.price.toString(),
       image: product.image || "",
     });
+
+    // Set image preview if product has an image
+    if (product.image) {
+      setImagePreview(product.image);
+    } else {
+      setImagePreview(null);
+    }
+    setImageFile(null);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
 
     const configs = product.rebateConfigs.map(config => ({
       level: config.level,
@@ -199,9 +288,19 @@ export default function AdminProductsPage() {
         return;
       }
 
+      // Handle image upload if there's a new image file
+      let imageUrl = formData.image;
+      if (imageFile) {
+        const uploadedImageUrl = await uploadImage();
+        if (uploadedImageUrl) {
+          imageUrl = uploadedImageUrl;
+        }
+      }
+
       const productData = {
         ...formData,
         price: parseFloat(formData.price),
+        image: imageUrl,
         rebateConfigs: rebateConfigs.map(config => ({
           level: config.level,
           percentage: parseFloat(config.percentage),
@@ -341,16 +440,78 @@ export default function AdminProductsPage() {
                     htmlFor="image"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Image URL
+                    Product Image
                   </label>
-                  <input
-                    type="text"
-                    id="image"
-                    name="image"
-                    value={formData.image}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
+                  <div className="flex flex-col space-y-2">
+                    {/* Image preview */}
+                    {imagePreview && (
+                      <div className="relative w-full h-40 mb-2 border rounded-md overflow-hidden">
+                        <Image
+                          src={imagePreview}
+                          alt="Product preview"
+                          fill
+                          className="object-contain"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImagePreview(null);
+                            setImageFile(null);
+                            setFormData(prev => ({ ...prev, image: "" }));
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = "";
+                            }
+                          }}
+                          className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                          title="Remove image"
+                        >
+                          <FaTimes size={14} />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* File input */}
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="file"
+                        id="imageUpload"
+                        ref={fileInputRef}
+                        onChange={handleImageChange}
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-3 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 flex items-center"
+                        disabled={uploadingImage}
+                      >
+                        {uploadingImage ? (
+                          <FaSpinner className="mr-2 animate-spin" />
+                        ) : (
+                          <FaUpload className="mr-2" />
+                        )}
+                        {imageFile ? "Change Image" : "Upload Image"}
+                      </button>
+
+                      {/* Manual URL input */}
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          id="image"
+                          name="image"
+                          value={formData.image}
+                          onChange={handleInputChange}
+                          placeholder="Or enter image URL"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-gray-500">
+                      Upload a JPEG, PNG, WebP, or GIF image (max 5MB)
+                    </p>
+                  </div>
                 </div>
                 <div className="md:col-span-2">
                   <label
@@ -590,7 +751,7 @@ export default function AdminProductsPage() {
                   <thead>
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
+                        Product
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Price
@@ -621,6 +782,18 @@ export default function AdminProductsPage() {
                                 <FaChevronDown />
                               )}
                             </button>
+                            <div className="h-10 w-10 flex-shrink-0 mr-3 relative rounded-md overflow-hidden">
+                              {product.image ? (
+                                <Image
+                                  src={product.image}
+                                  alt={product.name}
+                                  fill
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <ProductPlaceholder className="rounded-md" />
+                              )}
+                            </div>
                             <div>
                               <div className="text-sm font-medium text-gray-900">
                                 {product.name}
@@ -752,15 +925,28 @@ export default function AdminProductsPage() {
               <div className="p-6">
                 <div className="flex flex-col md:flex-row gap-6 mb-6">
                   <div className="md:w-1/3">
-                    {viewingProduct.image ? (
-                      <img
-                        src={viewingProduct.image}
-                        alt={viewingProduct.name}
-                        className="w-full h-auto rounded-md"
-                      />
-                    ) : (
-                      <div className="w-full h-48 bg-gray-200 rounded-md flex items-center justify-center">
-                        <FaImage className="text-gray-400 text-4xl" />
+                    <div className="relative w-full h-64 rounded-md overflow-hidden border border-gray-200">
+                      {viewingProduct.image ? (
+                        <Image
+                          src={viewingProduct.image}
+                          alt={viewingProduct.name}
+                          fill
+                          className="object-contain"
+                        />
+                      ) : (
+                        <ProductPlaceholder />
+                      )}
+                    </div>
+                    {viewingProduct.image && (
+                      <div className="mt-2 flex justify-center">
+                        <a
+                          href={viewingProduct.image}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                        >
+                          <FaEye className="mr-1" /> View full image
+                        </a>
                       </div>
                     )}
                   </div>

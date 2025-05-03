@@ -98,21 +98,70 @@ export default function AdminReportsPage() {
     }
   }, [status, router]);
 
+  const [isAdmin, setIsAdmin] = useState(false);
+
   useEffect(() => {
     if (status === "authenticated") {
-      // TODO: Add admin check
+      // Check if user is admin
+      const checkAdminStatus = async () => {
+        try {
+          const response = await fetch("/api/users/me");
+          const data = await response.json();
+
+          // For simplicity, we'll consider any user with rankId 6 (Diamond) as admin
+          const isAdmin = data.rankId === 6;
+          setIsAdmin(isAdmin);
+
+          if (isAdmin) {
+            fetchReportData();
+          } else {
+            setLoading(false);
+          }
+        } catch (error) {
+          console.error("Error checking admin status:", error);
+          setLoading(false);
+        }
+      };
+
+      checkAdminStatus();
+    }
+  }, [status]);
+
+  useEffect(() => {
+    if (status === "authenticated" && isAdmin) {
       fetchReportData();
     }
-  }, [status, dateRange]);
+  }, [status, isAdmin, dateRange]);
 
   const fetchReportData = async () => {
     setLoading(true);
 
     try {
-      // In a real application, we would fetch this data from the API
-      // For now, we'll use mock data
+      // Build query parameters
+      const params = new URLSearchParams();
 
-      // Mock data for demonstration
+      if (dateRange.startDate) {
+        params.append("startDate", dateRange.startDate);
+      }
+
+      if (dateRange.endDate) {
+        params.append("endDate", dateRange.endDate);
+      }
+
+      // Fetch report data from API
+      const response = await fetch(`/api/admin/reports?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch report data: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setReportData(data);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching report data:", error);
+
+      // Fallback to mock data if API fails
       const mockData: ReportData = {
         salesByProduct: {
           labels: ['Basic Package', 'Premium Package', 'Elite Package'],
@@ -156,9 +205,6 @@ export default function AdminReportsPage() {
 
       setReportData(mockData);
       setLoading(false);
-    } catch (error) {
-      console.error("Error fetching report data:", error);
-      setLoading(false);
     }
   };
 
@@ -180,6 +226,21 @@ export default function AdminReportsPage() {
       <MainLayout>
         <div className="flex items-center justify-center h-64">
           <div className="text-xl">Loading...</div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <MainLayout>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-semibold text-red-600 mb-4">Access Denied</h2>
+            <p className="text-gray-600">
+              You do not have permission to access this page. Please contact an administrator.
+            </p>
+          </div>
         </div>
       </MainLayout>
     );

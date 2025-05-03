@@ -8,13 +8,17 @@ datasource db {
 }
 
 model Rank {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  level       Int      @unique
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  users       User[]
+  id                   Int                @id @default(autoincrement())
+  name                 String             @unique
+  level                Int                @unique
+  description          String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  users                User[]
+  requirements         RankRequirement?
+  previousAdvancements RankAdvancement[]  @relation("PreviousRank")
+  newAdvancements      RankAdvancement[]  @relation("NewRank")
+  qualifiedFor         RankRequirement[]  @relation("QualifiedRank")
 }
 
 model User {
@@ -36,6 +40,7 @@ model User {
   downline           User[]              @relation("Downline")
   rank               Rank                @relation(fields: [rankId], references: [id])
   walletTransactions WalletTransaction[]
+  rankAdvancements   RankAdvancement[]
 }
 
 model Product {
@@ -52,13 +57,15 @@ model Product {
 }
 
 model RebateConfig {
-  id         Int      @id @default(autoincrement())
-  productId  Int
-  level      Int
-  percentage Float
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  product    Product  @relation(fields: [productId], references: [id])
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  level       Int
+  rewardType  String   @default("percentage") // "percentage" or "fixed"
+  percentage  Float    @default(0)
+  fixedAmount Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  product     Product  @relation(fields: [productId], references: [id])
 
   @@unique([productId, level])
 }
@@ -78,20 +85,28 @@ model Purchase {
 }
 
 model Rebate {
-  id          Int       @id @default(autoincrement())
-  purchaseId  Int
-  receiverId  Int
-  generatorId Int
-  level       Int
-  percentage  Float
-  amount      Float
-  status      String    @default("pending")
-  processedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  generator   User      @relation("RebateGenerator", fields: [generatorId], references: [id])
-  receiver    User      @relation("RebateReceiver", fields: [receiverId], references: [id])
-  purchase    Purchase  @relation(fields: [purchaseId], references: [id])
+  id                Int               @id @default(autoincrement())
+  purchaseId        Int
+  receiverId        Int
+  generatorId       Int
+  level             Int
+  rewardType        String            @default("percentage") // "percentage" or "fixed"
+  percentage        Float
+  amount            Float
+  status            String            @default("pending")
+  processedAt       DateTime?
+  walletTransactionId Int?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  generator         User              @relation("RebateGenerator", fields: [generatorId], references: [id])
+  receiver          User              @relation("RebateReceiver", fields: [receiverId], references: [id])
+  purchase          Purchase          @relation(fields: [purchaseId], references: [id])
+  walletTransaction WalletTransaction? @relation(fields: [walletTransactionId], references: [id])
+
+  @@index([purchaseId])
+  @@index([receiverId])
+  @@index([generatorId])
+  @@index([status])
 }
 
 model WalletTransaction {
@@ -104,4 +119,60 @@ model WalletTransaction {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user        User     @relation(fields: [userId], references: [id])
+  rebates     Rebate[]
+}
+
+model RankRequirement {
+  id                      Int      @id @default(autoincrement())
+  rankId                  Int      @unique
+  requiredPersonalSales   Float    @default(0)
+  requiredGroupSales      Float    @default(0)
+  requiredDirectDownline  Int      @default(0)
+  requiredQualifiedDownline Int    @default(0)
+  qualifiedRankId         Int?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  rank                    Rank     @relation(fields: [rankId], references: [id], onDelete: Cascade)
+  qualifiedRank           Rank?    @relation("QualifiedRank", fields: [qualifiedRankId], references: [id])
+}
+
+model RankAdvancement {
+  id                   Int      @id @default(autoincrement())
+  userId               Int
+  previousRankId       Int
+  newRankId            Int
+  personalSales        Float    @default(0)
+  groupSales           Float    @default(0)
+  directDownlineCount  Int      @default(0)
+  qualifiedDownlineCount Int    @default(0)
+  createdAt            DateTime @default(now())
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  previousRank         Rank     @relation("PreviousRank", fields: [previousRankId], references: [id])
+  newRank              Rank     @relation("NewRank", fields: [newRankId], references: [id])
+}
+
+model ReferralReward {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  rewardType  String   @default("fixed") // "fixed" or "percentage"
+  amount      Float    @default(0)
+  percentage  Float    @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model BonusReward {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  rewardType  String   @default("fixed") // "fixed" or "percentage"
+  amount      Float    @default(0)
+  percentage  Float    @default(0)
+  triggerType String   // "rank_advancement", "sales_milestone", "team_size", etc.
+  triggerValue String? // JSON string with trigger conditions
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
