@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, email, password, uplineId, phone } = validation.data!;
+    const { name, email, password, uplineId, phone, profileImage } = validation.data!;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -32,6 +32,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate uplineId if provided
+    let parsedUplineId = null;
+    if (uplineId) {
+      parsedUplineId = parseInt(uplineId);
+
+      if (isNaN(parsedUplineId)) {
+        return NextResponse.json(
+          { error: "Invalid upline ID" },
+          { status: 400 }
+        );
+      }
+
+      // Check if upline exists
+      const upline = await prisma.user.findUnique({
+        where: { id: parsedUplineId },
+      });
+
+      if (!upline) {
+        return NextResponse.json(
+          { error: "Upline user not found" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -42,7 +67,8 @@ export async function POST(request: NextRequest) {
         email,
         password: hashedPassword,
         phone,
-        uplineId: uplineId ? parseInt(uplineId) : null,
+        profileImage,
+        uplineId: parsedUplineId,
         rankId: 1, // Default rank
       },
     });

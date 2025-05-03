@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { FaHome, FaUsers, FaShoppingCart, FaWallet, FaChartLine, FaCog } from 'react-icons/fa';
+import { FaHome, FaUsers, FaShoppingCart, FaWallet, FaChartLine, FaCog, FaUser } from 'react-icons/fa';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -50,6 +50,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   <span>Rebates</span>
                 </Link>
               </li>
+              <li>
+                <Link href="/profile" className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                  <FaUser className="mr-3" />
+                  <span>My Profile</span>
+                </Link>
+              </li>
               {/* Admin section */}
               <li className="mt-8 border-t pt-2">
                 <Link href="/admin" className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
@@ -74,13 +80,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <div className="flex items-center">
                 {session ? (
                   <div className="flex items-center">
-                    <span className="mr-4">{session.user?.name || session.user?.email}</span>
-                    <Link href="/api/auth/signout" className="px-4 py-2 bg-red-500 text-white rounded-md">
+                    <Link href="/profile" className="flex items-center mr-4 hover:text-blue-600">
+                      <FaUser className="mr-2" />
+                      <span>{session.user?.name || session.user?.email}</span>
+                    </Link>
+                    <Link href="/api/auth/signout" className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">
                       Sign Out
                     </Link>
                   </div>
                 ) : (
-                  <Link href="/login" className="px-4 py-2 bg-blue-500 text-white rounded-md">
+                  <Link href="/login" className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
                     Sign In
                   </Link>
                 )}

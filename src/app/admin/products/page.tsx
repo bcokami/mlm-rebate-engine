@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-import { FaPlus, FaEdit, FaTrash, FaChevronDown, FaChevronUp } from "react-icons/fa";
+import {
+  FaPlus, FaEdit, FaTrash, FaChevronDown, FaChevronUp,
+  FaSearch, FaFilter, FaToggleOn, FaToggleOff, FaSpinner,
+  FaEye, FaCheck, FaTimes, FaImage
+} from "react-icons/fa";
 
 interface Product {
   id: number;
@@ -44,6 +48,21 @@ export default function AdminProductsPage() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [expandedProduct, setExpandedProduct] = useState<number | null>(null);
 
+  // Search and filter state
+  const [search, setSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<boolean | null>(null);
+  const [sortBy, setSortBy] = useState<"name" | "price" | "createdAt">("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  // Product view state
+  const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
+  const [showProductDetails, setShowProductDetails] = useState(false);
+
+  // Confirmation dialog state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
@@ -55,13 +74,37 @@ export default function AdminProductsPage() {
       // TODO: Add admin check
       fetchProducts();
     }
-  }, [status]);
+  }, [status, search, activeFilter, sortBy, sortOrder]);
 
   const fetchProducts = async () => {
+    setLoading(true);
     try {
-      const response = await fetch("/api/products");
+      // Build query parameters
+      const params = new URLSearchParams();
+
+      if (search) {
+        params.append("search", search);
+      }
+
+      if (activeFilter !== null) {
+        params.append("isActive", activeFilter.toString());
+      }
+
+      params.append("sortBy", sortBy);
+      params.append("sortOrder", sortOrder);
+
+      const response = await fetch(`/api/products?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch products: ${response.statusText}`);
+      }
+
       const data = await response.json();
-      setProducts(data);
+
+      // If data is an object with products property, use that
+      const productsArray = Array.isArray(data) ? data : (data.products || []);
+
+      setProducts(productsArray);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -418,6 +461,123 @@ export default function AdminProductsPage() {
           </div>
         )}
 
+        {/* Search and Filters */}
+        <div className="bg-white rounded-lg shadow p-4 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Search products by name or description"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaSearch className="text-gray-400" />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+              >
+                <FaFilter className="mr-2" />
+                Filters
+                {showFilters ? <FaChevronUp className="ml-2" /> : <FaChevronDown className="ml-2" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Expanded Filters */}
+          {showFilters && (
+            <div className="mt-4 p-4 bg-gray-50 rounded-md">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <div className="flex space-x-4">
+                    <button
+                      onClick={() => setActiveFilter(activeFilter === true ? null : true)}
+                      className={`px-3 py-1 rounded-md flex items-center ${
+                        activeFilter === true
+                          ? "bg-green-100 text-green-800 border border-green-300"
+                          : "bg-gray-100 text-gray-700 border border-gray-200"
+                      }`}
+                    >
+                      {activeFilter === true ? (
+                        <FaToggleOn className="mr-2" />
+                      ) : (
+                        <FaToggleOff className="mr-2" />
+                      )}
+                      Active
+                    </button>
+                    <button
+                      onClick={() => setActiveFilter(activeFilter === false ? null : false)}
+                      className={`px-3 py-1 rounded-md flex items-center ${
+                        activeFilter === false
+                          ? "bg-red-100 text-red-800 border border-red-300"
+                          : "bg-gray-100 text-gray-700 border border-gray-200"
+                      }`}
+                    >
+                      {activeFilter === false ? (
+                        <FaToggleOn className="mr-2" />
+                      ) : (
+                        <FaToggleOff className="mr-2" />
+                      )}
+                      Inactive
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Sort By
+                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as "name" | "price" | "createdAt")}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="name">Name</option>
+                    <option value="price">Price</option>
+                    <option value="createdAt">Date Created</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Sort Order
+                  </label>
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => {
+                    setSearch("");
+                    setActiveFilter(null);
+                    setSortBy("createdAt");
+                    setSortOrder("desc");
+                  }}
+                  className="px-4 py-2 text-gray-700 hover:text-gray-900"
+                >
+                  Reset Filters
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Products List */}
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b">
@@ -503,21 +663,66 @@ export default function AdminProductsPage() {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button
-                            onClick={() => handleEditProduct(product)}
-                            className="text-blue-600 hover:text-blue-900 mr-3"
-                          >
-                            <FaEdit />
-                          </button>
-                          <button
-                            onClick={() => {
-                              // TODO: Implement delete functionality
-                              alert("Delete functionality will be implemented later");
-                            }}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <FaTrash />
-                          </button>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => {
+                                setViewingProduct(product);
+                                setShowProductDetails(true);
+                              }}
+                              className="text-blue-600 hover:text-blue-900"
+                              title="View Details"
+                            >
+                              <FaEye />
+                            </button>
+                            <button
+                              onClick={() => handleEditProduct(product)}
+                              className="text-green-600 hover:text-green-900"
+                              title="Edit Product"
+                            >
+                              <FaEdit />
+                            </button>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(`/api/products/${product.id}/toggle-status`, {
+                                    method: "PATCH",
+                                  });
+
+                                  if (!response.ok) {
+                                    throw new Error("Failed to toggle product status");
+                                  }
+
+                                  // Refresh products list
+                                  fetchProducts();
+
+                                  setMessage({
+                                    type: "success",
+                                    text: `Product ${product.isActive ? "deactivated" : "activated"} successfully`
+                                  });
+                                } catch (error) {
+                                  console.error("Error toggling product status:", error);
+                                  setMessage({
+                                    type: "error",
+                                    text: "Failed to toggle product status"
+                                  });
+                                }
+                              }}
+                              className={`${product.isActive ? "text-orange-600 hover:text-orange-900" : "text-green-600 hover:text-green-900"}`}
+                              title={product.isActive ? "Deactivate Product" : "Activate Product"}
+                            >
+                              {product.isActive ? <FaToggleOn /> : <FaToggleOff />}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setProductToDelete(product);
+                                setShowDeleteConfirm(true);
+                              }}
+                              className="text-red-600 hover:text-red-900"
+                              title="Delete Product"
+                            >
+                              <FaTrash />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -529,6 +734,181 @@ export default function AdminProductsPage() {
             )}
           </div>
         </div>
+
+        {/* Product Details Modal */}
+        {showProductDetails && viewingProduct && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="px-6 py-4 border-b flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Product Details</h3>
+                <button
+                  onClick={() => setShowProductDetails(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <FaTimes />
+                </button>
+              </div>
+
+              <div className="p-6">
+                <div className="flex flex-col md:flex-row gap-6 mb-6">
+                  <div className="md:w-1/3">
+                    {viewingProduct.image ? (
+                      <img
+                        src={viewingProduct.image}
+                        alt={viewingProduct.name}
+                        className="w-full h-auto rounded-md"
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-200 rounded-md flex items-center justify-center">
+                        <FaImage className="text-gray-400 text-4xl" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="md:w-2/3">
+                    <h2 className="text-xl font-semibold mb-2">{viewingProduct.name}</h2>
+                    <div className="mb-4">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          viewingProduct.isActive
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {viewingProduct.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium text-gray-500 mb-1">Price</h4>
+                      <p className="text-lg font-semibold">₱{viewingProduct.price.toFixed(2)}</p>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-1">Description</h4>
+                      <p className="text-gray-700">{viewingProduct.description || "No description provided"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="text-md font-semibold mb-3">Rebate Configuration</h3>
+
+                  {viewingProduct.rebateConfigs.length > 0 ? (
+                    <div className="bg-gray-50 p-4 rounded-md">
+                      <table className="min-w-full">
+                        <thead>
+                          <tr>
+                            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-2">
+                              Level
+                            </th>
+                            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-2">
+                              Percentage
+                            </th>
+                            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-2">
+                              Rebate Amount
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {viewingProduct.rebateConfigs
+                            .sort((a, b) => a.level - b.level)
+                            .map((config) => (
+                              <tr key={config.id}>
+                                <td className="py-2 text-sm">Level {config.level}</td>
+                                <td className="py-2 text-sm">{config.percentage}%</td>
+                                <td className="py-2 text-sm">
+                                  ₱{((viewingProduct.price * config.percentage) / 100).toFixed(2)}
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500">No rebate configuration</p>
+                  )}
+                </div>
+
+                <div className="flex justify-end mt-6 space-x-3">
+                  <button
+                    onClick={() => {
+                      setShowProductDetails(false);
+                      handleEditProduct(viewingProduct);
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    Edit Product
+                  </button>
+                  <button
+                    onClick={() => setShowProductDetails(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Dialog */}
+        {showDeleteConfirm && productToDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+              <h3 className="text-lg font-semibold mb-4">Confirm Delete</h3>
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete the product "{productToDelete.name}"? This action cannot be undone.
+              </p>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`/api/products/${productToDelete.id}`, {
+                        method: "DELETE",
+                      });
+
+                      if (!response.ok) {
+                        throw new Error("Failed to delete product");
+                      }
+
+                      // Refresh products list
+                      fetchProducts();
+
+                      setMessage({
+                        type: "success",
+                        text: "Product deleted successfully"
+                      });
+
+                      // Close the dialog
+                      setShowDeleteConfirm(false);
+                      setProductToDelete(null);
+                    } catch (error) {
+                      console.error("Error deleting product:", error);
+                      setMessage({
+                        type: "error",
+                        text: "Failed to delete product"
+                      });
+                    }
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setProductToDelete(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </MainLayout>
   );

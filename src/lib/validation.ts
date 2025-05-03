@@ -14,9 +14,37 @@ export const registerSchema = z.object({
   confirmPassword: z.string().min(8, 'Confirm password must be at least 8 characters'),
   phone: z.string().optional(),
   uplineId: z.string().optional(),
+  profileImage: z.string().optional(),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ['confirmPassword'],
+});
+
+export const updateUserSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').optional(),
+  phone: z.string().optional(),
+  currentPassword: z.string().optional(),
+  newPassword: z.string().min(8, 'New password must be at least 8 characters').optional(),
+  confirmNewPassword: z.string().optional(),
+  profileImage: z.string().optional(),
+}).refine(data => {
+  // If newPassword is provided, confirmNewPassword must match
+  if (data.newPassword && data.newPassword !== data.confirmNewPassword) {
+    return false;
+  }
+  return true;
+}, {
+  message: "New passwords don't match",
+  path: ['confirmNewPassword'],
+}).refine(data => {
+  // If newPassword is provided, currentPassword must also be provided
+  if (data.newPassword && !data.currentPassword) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Current password is required to set a new password",
+  path: ['currentPassword'],
 });
 
 // Product validation schemas

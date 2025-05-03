@@ -23,6 +23,7 @@ model User {
   password           String
   name               String
   phone              String?
+  profileImage       String?
   rankId             Int                 @default(1)
   uplineId           Int?
   walletBalance      Float               @default(0)

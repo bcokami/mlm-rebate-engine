@@ -90,6 +90,15 @@ export async function processRebates() {
     },
   });
 
+  let processed = 0;
+  let failed = 0;
+  const results = {
+    processed: 0,
+    failed: 0,
+    processedRebates: [] as any[],
+    failedRebates: [] as any[]
+  };
+
   for (const rebate of pendingRebates) {
     try {
       // Update user's wallet balance
@@ -99,38 +108,53 @@ export async function processRebates() {
       });
 
       // Create wallet transaction
-      await prisma.walletTransaction.create({
+      const transaction = await prisma.walletTransaction.create({
         data: {
           userId: rebate.receiverId,
           amount: rebate.amount,
           type: "rebate",
           description: `Rebate from level ${rebate.level} purchase`,
+          status: "completed",
         },
       });
 
       // Update rebate status
-      await prisma.rebate.update({
+      const updatedRebate = await prisma.rebate.update({
         where: { id: rebate.id },
         data: {
           status: "processed",
           processedAt: new Date(),
+          walletTransactionId: transaction.id
         },
       });
 
       // Send email notification
       if (rebate.receiver.email) {
-        await sendEmail(
-          rebate.receiver.email,
-          'rebateReceived',
-          {
-            userName: rebate.receiver.name,
-            amount: rebate.amount,
-            generatorName: rebate.generator.name,
-            level: rebate.level,
-            productName: rebate.purchase.product.name
-          }
-        );
+        try {
+          await sendEmail(
+            rebate.receiver.email,
+            'rebateReceived',
+            {
+              userName: rebate.receiver.name,
+              amount: rebate.amount,
+              generatorName: rebate.generator.name,
+              level: rebate.level,
+              productName: rebate.purchase.product.name
+            }
+          );
+        } catch (emailError) {
+          console.error(`Failed to send email for rebate ID ${rebate.id}:`, emailError);
+          // We don't fail the rebate processing if just the email fails
+        }
       }
+
+      processed++;
+      results.processedRebates.push({
+        id: rebate.id,
+        amount: rebate.amount,
+        receiverId: rebate.receiverId,
+        receiverName: rebate.receiver.name
+      });
     } catch (error) {
       console.error(`Failed to process rebate ID ${rebate.id}:`, error);
 
@@ -139,6 +163,20 @@ export async function processRebates() {
         where: { id: rebate.id },
         data: { status: "failed" },
       });
+
+      failed++;
+      results.failedRebates.push({
+        id: rebate.id,
+        amount: rebate.amount,
+        receiverId: rebate.receiverId,
+        receiverName: rebate.receiver.name,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   }
+
+  results.processed = processed;
+  results.failed = failed;
+
+  return results;
 }

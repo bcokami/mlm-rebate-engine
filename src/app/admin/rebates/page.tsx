@@ -5,9 +5,18 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import {
-  FaChartLine, FaWallet, FaFilter, FaCalendarAlt,
-  FaChevronDown, FaChevronUp, FaSpinner, FaCheck,
-  FaTimes, FaSync, FaUser
+  FaWallet,
+  FaFilter,
+  FaSearch,
+  FaSpinner,
+  FaCheck,
+  FaTimes,
+  FaSync,
+  FaDownload,
+  FaChartLine,
+  FaCalendarAlt,
+  FaUser,
+  FaExclamationTriangle
 } from "react-icons/fa";
 
 interface Rebate {
@@ -19,6 +28,11 @@ interface Rebate {
   createdAt: string;
   processedAt: string | null;
   generator: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  receiver: {
     id: number;
     name: string;
     email: string;
@@ -44,14 +58,12 @@ interface RebateStats {
   failedCount: number;
 }
 
-export default function RebatesPage() {
+export default function AdminRebatesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [rebates, setRebates] = useState<Rebate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all"); // all, pending, processed, failed
-
-  // Additional state
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [rebates, setRebates] = useState<Rebate[]>([]);
   const [stats, setStats] = useState<RebateStats>({
     totalRebates: 0,
     totalAmount: 0,
@@ -62,14 +74,21 @@ export default function RebatesPage() {
     processedCount: 0,
     failedCount: 0
   });
-
-  // Date filter
+  
+  // Filters
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState({
     startDate: "",
     endDate: ""
   });
-  const [showDateFilter, setShowDateFilter] = useState(false);
-
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Processing state
+  const [processing, setProcessing] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState("");
+  const [processingError, setProcessingError] = useState("");
+  
   // Pagination
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -84,10 +103,29 @@ export default function RebatesPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      fetchRebates();
-      fetchRebateStats();
+      // Check if user is admin
+      const checkAdminStatus = async () => {
+        try {
+          const response = await fetch("/api/users/me");
+          const data = await response.json();
+
+          // For simplicity, we'll consider any user with rankId 6 (Diamond) as admin
+          setIsAdmin(data.rankId === 6);
+          
+          if (data.rankId === 6) {
+            fetchRebates();
+          } else {
+            setLoading(false);
+          }
+        } catch (error) {
+          console.error("Error checking admin status:", error);
+          setLoading(false);
+        }
+      };
+
+      checkAdminStatus();
     }
-  }, [status, filter, page, pageSize, dateRange]);
+  }, [status]);
 
   const fetchRebates = async () => {
     setLoading(true);
@@ -96,55 +134,85 @@ export default function RebatesPage() {
       const params = new URLSearchParams();
       params.append("page", page.toString());
       params.append("pageSize", pageSize.toString());
-
-      if (filter !== "all") {
-        params.append("status", filter);
+      
+      if (statusFilter) {
+        params.append("status", statusFilter);
       }
-
+      
+      if (search) {
+        params.append("search", search);
+      }
+      
       if (dateRange.startDate) {
         params.append("startDate", dateRange.startDate);
       }
-
+      
       if (dateRange.endDate) {
         params.append("endDate", dateRange.endDate);
       }
-
-      const response = await fetch(`/api/rebates?${params.toString()}`);
-
+      
+      // Fetch rebates
+      const response = await fetch(`/api/admin/rebates?${params.toString()}`);
+      
       if (!response.ok) {
         throw new Error(`Failed to fetch rebates: ${response.statusText}`);
       }
-
+      
       const data = await response.json();
-
-      if (data.rebates && Array.isArray(data.rebates)) {
-        setRebates(data.rebates);
-        setTotalPages(data.pagination.totalPages);
-        setTotalItems(data.pagination.totalItems);
-      } else {
-        // Handle legacy API response format
-        setRebates(Array.isArray(data) ? data : []);
+      
+      setRebates(data.rebates);
+      setTotalPages(data.pagination.totalPages);
+      setTotalItems(data.pagination.totalItems);
+      
+      // Fetch stats
+      const statsResponse = await fetch("/api/admin/rebates/stats");
+      
+      if (!statsResponse.ok) {
+        throw new Error(`Failed to fetch rebate stats: ${statsResponse.statusText}`);
       }
-
-      setLoading(false);
+      
+      const statsData = await statsResponse.json();
+      setStats(statsData);
     } catch (error) {
       console.error("Error fetching rebates:", error);
+    } finally {
       setLoading(false);
     }
   };
 
-  const fetchRebateStats = async () => {
+  useEffect(() => {
+    if (isAdmin) {
+      fetchRebates();
+    }
+  }, [isAdmin, page, pageSize, statusFilter, search, dateRange]);
+
+  const handleProcessRebates = async () => {
+    setProcessing(true);
+    setProcessingMessage("Processing pending rebates...");
+    setProcessingError("");
+    
     try {
-      const response = await fetch("/api/rebates/stats");
-
+      const response = await fetch("/api/admin/rebates/process", {
+        method: "POST"
+      });
+      
       if (!response.ok) {
-        throw new Error(`Failed to fetch rebate stats: ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to process rebates");
       }
-
+      
       const data = await response.json();
-      setStats(data);
-    } catch (error) {
-      console.error("Error fetching rebate stats:", error);
+      setProcessingMessage(`Successfully processed ${data.processed} rebates`);
+      
+      // Refresh rebates list
+      fetchRebates();
+    } catch (error: any) {
+      setProcessingError(error.message || "An error occurred while processing rebates");
+    } finally {
+      setTimeout(() => {
+        setProcessing(false);
+        setProcessingMessage("");
+      }, 3000);
     }
   };
 
@@ -167,14 +235,55 @@ export default function RebatesPage() {
     setPage(1); // Reset to first page when changing page size
   };
 
-  // Calculate total rebates
-  const totalRebates = rebates.reduce((sum, rebate) => sum + rebate.amount, 0);
-
-  // Group rebates by level
-  const rebatesByLevel = rebates.reduce((acc, rebate) => {
-    acc[rebate.level] = (acc[rebate.level] || 0) + rebate.amount;
-    return acc;
-  }, {} as Record<number, number>);
+  const exportRebates = async () => {
+    try {
+      // Build query parameters for export (same as current filters but without pagination)
+      const params = new URLSearchParams();
+      
+      if (statusFilter) {
+        params.append("status", statusFilter);
+      }
+      
+      if (search) {
+        params.append("search", search);
+      }
+      
+      if (dateRange.startDate) {
+        params.append("startDate", dateRange.startDate);
+      }
+      
+      if (dateRange.endDate) {
+        params.append("endDate", dateRange.endDate);
+      }
+      
+      params.append("export", "true");
+      
+      // Fetch CSV data
+      const response = await fetch(`/api/admin/rebates/export?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to export rebates: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `rebates-export-${new Date().toISOString().split('T')[0]}.csv`;
+      
+      // Append to body, click and remove
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Error exporting rebates:", error);
+      alert("Failed to export rebates. Please try again.");
+    }
+  };
 
   if (status === "loading" || loading) {
     return (
@@ -186,12 +295,65 @@ export default function RebatesPage() {
     );
   }
 
+  if (!isAdmin) {
+    return (
+      <MainLayout>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-semibold text-red-600 mb-4">Access Denied</h2>
+            <p className="text-gray-600">
+              You do not have permission to access this page. Please contact an administrator.
+            </p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
       <div>
-        <h1 className="text-2xl font-semibold mb-6 flex items-center">
-          <FaWallet className="mr-2 text-blue-500" /> Rebate Earnings
-        </h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-semibold flex items-center">
+            <FaWallet className="mr-2 text-blue-500" /> Rebate Management
+          </h1>
+          <div className="flex space-x-2">
+            <button
+              onClick={exportRebates}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
+            >
+              <FaDownload className="mr-2" /> Export
+            </button>
+            <button
+              onClick={handleProcessRebates}
+              disabled={processing || stats.pendingCount === 0}
+              className={`px-4 py-2 text-white rounded-md flex items-center ${
+                processing || stats.pendingCount === 0
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
+            >
+              {processing ? (
+                <FaSpinner className="animate-spin mr-2" />
+              ) : (
+                <FaSync className="mr-2" />
+              )}
+              Process Rebates
+            </button>
+          </div>
+        </div>
+
+        {processingMessage && (
+          <div className="mb-6 p-4 bg-green-100 text-green-700 rounded-md">
+            {processingMessage}
+          </div>
+        )}
+
+        {processingError && (
+          <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-md">
+            {processingError}
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -237,7 +399,7 @@ export default function RebatesPage() {
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-red-100 text-red-500 mr-4">
-                <FaTimes className="h-5 w-5" />
+                <FaExclamationTriangle className="h-5 w-5" />
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium">Failed</p>
@@ -248,55 +410,45 @@ export default function RebatesPage() {
           </div>
         </div>
 
-        {/* Level Breakdown */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center">
-            <FaChartLine className="mr-2 text-blue-500" /> Earnings by Level
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            {Object.entries(rebatesByLevel)
-              .sort(([levelA], [levelB]) => parseInt(levelA) - parseInt(levelB))
-              .map(([level, amount]) => (
-                <div key={level} className="bg-gray-50 p-4 rounded-md">
-                  <p className="text-sm text-gray-500 font-medium">Level {level}</p>
-                  <p className="text-xl font-semibold">₱{amount.toFixed(2)}</p>
-                </div>
-              ))}
-            {Object.keys(rebatesByLevel).length === 0 && (
-              <div className="col-span-5 text-center py-4 text-gray-500">
-                No rebate data available for level breakdown
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Filters */}
+        {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Search by user name or email"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaSearch className="text-gray-400" />
+              </div>
+            </div>
+            
             <div className="flex items-center space-x-2">
               <select
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="all">All Statuses</option>
+                <option value="">All Statuses</option>
                 <option value="pending">Pending</option>
                 <option value="processed">Processed</option>
                 <option value="failed">Failed</option>
               </select>
-
+              
               <button
-                onClick={() => setShowDateFilter(!showDateFilter)}
+                onClick={() => setShowFilters(!showFilters)}
                 className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
               >
                 <FaFilter className="mr-2" />
-                {showDateFilter ? "Hide Date Filter" : "Date Filter"}
-                {showDateFilter ? <FaChevronUp className="ml-2" /> : <FaChevronDown className="ml-2" />}
+                {showFilters ? "Hide Filters" : "More Filters"}
               </button>
             </div>
           </div>
-
-          {showDateFilter && (
+          
+          {showFilters && (
             <div className="mt-4 p-4 bg-gray-50 rounded-md">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -316,7 +468,7 @@ export default function RebatesPage() {
                     />
                   </div>
                 </div>
-
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     End Date
@@ -335,11 +487,12 @@ export default function RebatesPage() {
                   </div>
                 </div>
               </div>
-
+              
               <div className="mt-4 flex justify-end">
                 <button
                   onClick={() => {
-                    setFilter("all");
+                    setSearch("");
+                    setStatusFilter("");
                     setDateRange({ startDate: "", endDate: "" });
                   }}
                   className="px-4 py-2 text-gray-700 hover:text-gray-900"
@@ -351,7 +504,7 @@ export default function RebatesPage() {
           )}
         </div>
 
-        {/* Rebate Transactions */}
+        {/* Rebates Table */}
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b">
             <h2 className="text-lg font-semibold">Rebate Transactions</h2>
@@ -371,16 +524,16 @@ export default function RebatesPage() {
                         Date
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        From
+                        Generator
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Receiver
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Product
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Level
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Percentage
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Amount
@@ -408,6 +561,24 @@ export default function RebatesPage() {
                               <div className="text-sm font-medium text-gray-900">
                                 {rebate.generator.name}
                               </div>
+                              <div className="text-sm text-gray-500">
+                                {rebate.generator.email}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+                              <FaUser className="text-gray-500" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {rebate.receiver.name}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {rebate.receiver.email}
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -416,9 +587,6 @@ export default function RebatesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           Level {rebate.level}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {rebate.percentage}%
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
                           ₱{rebate.amount.toFixed(2)}
@@ -448,12 +616,10 @@ export default function RebatesPage() {
                 </table>
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-8">
-                No rebates found matching your criteria.
-              </p>
+              <p className="text-gray-500 text-center py-8">No rebates found matching your criteria.</p>
             )}
           </div>
-
+          
           {/* Pagination */}
           {rebates.length > 0 && (
             <div className="px-6 py-4 border-t flex items-center justify-between">
@@ -472,7 +638,7 @@ export default function RebatesPage() {
                   <option value="100">100</option>
                 </select>
               </div>
-
+              
               <div className="flex items-center">
                 <span className="text-sm text-gray-700 mr-4">
                   {page} of {totalPages} pages

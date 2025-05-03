@@ -74,6 +74,9 @@ export async function GET(request: NextRequest) {
     const page = parseInt(url.searchParams.get("page") || "1");
     const pageSize = parseInt(url.searchParams.get("pageSize") || "10");
     const search = url.searchParams.get("search") || "";
+    const isActiveParam = url.searchParams.get("isActive");
+    const sortBy = url.searchParams.get("sortBy") || "createdAt";
+    const sortOrder = url.searchParams.get("sortOrder") || "desc";
 
     // Calculate pagination
     const skip = (page - 1) * pageSize;
@@ -83,13 +86,28 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       whereClause.OR = [
-        { name: { contains: search } },
-        { description: { contains: search } },
+        { name: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
       ];
     }
 
+    if (isActiveParam !== null) {
+      whereClause.isActive = isActiveParam === "true";
+    }
+
+    // Build orderBy clause for sorting
+    let orderByClause: any = {};
+
+    if (sortBy === "name") {
+      orderByClause.name = sortOrder;
+    } else if (sortBy === "price") {
+      orderByClause.price = sortOrder;
+    } else {
+      orderByClause.createdAt = sortOrder;
+    }
+
     // Create cache key based on query parameters
-    const cacheKey = `products:${page}:${pageSize}:${search}`;
+    const cacheKey = `products:${page}:${pageSize}:${search}:${isActiveParam}:${sortBy}:${sortOrder}`;
 
     // Try to get from cache first
     const result = await productCache.getOrSet(cacheKey, async () => {
@@ -105,9 +123,7 @@ export async function GET(request: NextRequest) {
         },
         skip,
         take: pageSize,
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy: orderByClause,
       });
 
       // Get total count for pagination
