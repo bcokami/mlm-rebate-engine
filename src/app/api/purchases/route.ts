@@ -27,8 +27,43 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { productId, quantity, paymentMethodId, paymentDetails, referenceNumber } = body;
+    const {
+      productId,
+      quantity,
+      paymentMethodId,
+      paymentDetails,
+      referenceNumber,
+      shippingMethodId,
+      shippingDetails,
+      shippingAddress,
+      shippingFee,
+      referralCode
+    } = body;
+
     const userId = parseInt(session.user.id);
+
+    // Check for referral code
+    let referralLinkId = null;
+    let referralSource = null;
+    let referralData = null;
+
+    if (referralCode) {
+      // Get the shareable link
+      const { getShareableLinkByCode } = await import("@/lib/shareableLinkService");
+      const link = await getShareableLinkByCode(referralCode);
+
+      if (link) {
+        // Make sure the user is not referring themselves
+        if (link.userId !== userId) {
+          referralLinkId = link.id;
+          referralSource = "link";
+          referralData = JSON.stringify({
+            code: referralCode,
+            referrerId: link.userId,
+          });
+        }
+      }
+    }
 
     // Create the purchase using the service
     const result = await createPurchase({
@@ -38,7 +73,25 @@ export async function POST(request: NextRequest) {
       paymentMethodId,
       paymentDetails,
       referenceNumber,
+      shippingMethodId,
+      shippingDetails,
+      shippingAddress,
+      shippingFee,
+      referralLinkId,
+      referralSource,
+      referralData,
     });
+
+    // Process referral commission if applicable
+    if (referralLinkId) {
+      try {
+        const { recordReferralPurchase } = await import("@/lib/shareableLinkService");
+        await recordReferralPurchase(result.purchase.id, referralLinkId);
+      } catch (error) {
+        console.error("Error processing referral commission:", error);
+        // Don't fail the purchase if commission processing fails
+      }
+    }
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

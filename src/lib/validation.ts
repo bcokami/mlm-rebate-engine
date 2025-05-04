@@ -65,9 +65,17 @@ export const productSchema = z.object({
 export const purchaseSchema = z.object({
   productId: z.number().int().positive('Product ID must be a positive integer'),
   quantity: z.number().int().positive('Quantity must be a positive integer'),
+  // Payment information
   paymentMethodId: z.number().int().positive('Payment method ID must be a positive integer').optional(),
   paymentDetails: z.record(z.any()).optional(),
   referenceNumber: z.string().optional(),
+  // Shipping information
+  shippingMethodId: z.number().int().positive('Shipping method ID must be a positive integer').optional(),
+  shippingDetails: z.record(z.any()).optional(),
+  shippingAddress: z.string().optional(),
+  shippingFee: z.number().nonnegative('Shipping fee must be a non-negative number').optional(),
+  // Referral information
+  referralCode: z.string().optional(),
 });
 
 // Wallet transaction validation schema

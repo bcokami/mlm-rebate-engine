@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { calculatePvRebates } from "./pvRebateCalculator";
 import { calculatePv } from "./mlmConfigService";
 import { validatePaymentDetails } from "./paymentMethodService";
+import { validateShippingDetails, calculateShippingFee } from "./shippingMethodService";
 
 /**
  * Interface for purchase creation
@@ -13,11 +14,20 @@ export interface PurchaseCreateInput {
   paymentMethodId?: number;
   paymentDetails?: any;
   referenceNumber?: string;
+  // Shipping information
+  shippingMethodId?: number;
+  shippingDetails?: any;
+  shippingAddress?: string;
+  shippingFee?: number;
+  // Referral information
+  referralLinkId?: number | null;
+  referralSource?: string | null;
+  referralData?: string | null;
 }
 
 /**
  * Create a new purchase
- * 
+ *
  * @param data Purchase data
  * @returns Created purchase with rebate calculation result
  */
@@ -34,7 +44,7 @@ export async function createPurchase(data: PurchaseCreateInput) {
 
     // Calculate total amount
     const totalAmount = product.price * data.quantity;
-    
+
     // Calculate PV based on configuration
     const totalPV = await calculatePv(totalAmount, product.pv * data.quantity);
 
@@ -51,6 +61,29 @@ export async function createPurchase(data: PurchaseCreateInput) {
       }
     }
 
+    // Validate shipping details if a shipping method is provided
+    if (data.shippingMethodId) {
+      // Validate shipping details
+      const validationResult = await validateShippingDetails(
+        data.shippingMethodId,
+        data.shippingDetails || {}
+      );
+
+      if (!validationResult.isValid) {
+        throw new Error(`Invalid shipping details: ${validationResult.errors?.join(', ')}`);
+      }
+
+      // Calculate shipping fee if not provided
+      if (data.shippingFee === undefined) {
+        data.shippingFee = await calculateShippingFee(
+          data.shippingMethodId,
+          data.shippingDetails || {},
+          data.productId,
+          data.quantity
+        );
+      }
+    }
+
     // Create purchase in a transaction
     const purchase = await prisma.$transaction(async (tx) => {
       // Create the purchase
@@ -61,9 +94,20 @@ export async function createPurchase(data: PurchaseCreateInput) {
           quantity: data.quantity,
           totalAmount,
           totalPV,
+          // Payment information
           paymentMethodId: data.paymentMethodId,
           paymentDetails: data.paymentDetails ? JSON.stringify(data.paymentDetails) : null,
           referenceNumber: data.referenceNumber,
+          // Shipping information
+          shippingMethodId: data.shippingMethodId,
+          shippingDetails: data.shippingDetails ? JSON.stringify(data.shippingDetails) : null,
+          shippingAddress: data.shippingAddress,
+          shippingFee: data.shippingFee,
+          shippingStatus: data.shippingMethodId ? "pending" : null,
+          // Referral information
+          referralLinkId: data.referralLinkId,
+          referralSource: data.referralSource,
+          referralData: data.referralData,
         },
       });
 
@@ -91,7 +135,7 @@ export async function createPurchase(data: PurchaseCreateInput) {
 
 /**
  * Get purchases for a user
- * 
+ *
  * @param userId User ID
  * @param limit Maximum number of purchases to return
  * @param offset Offset for pagination
@@ -139,7 +183,7 @@ export async function getUserPurchases(
 
 /**
  * Get a purchase by ID
- * 
+ *
  * @param id Purchase ID
  * @returns Purchase or null if not found
  */
@@ -178,7 +222,7 @@ export async function getPurchaseById(id: number) {
 
 /**
  * Update a purchase status
- * 
+ *
  * @param id Purchase ID
  * @param status New status
  * @returns Updated purchase
@@ -200,7 +244,7 @@ export async function updatePurchaseStatus(id: number, status: string) {
 
 /**
  * Get purchase statistics for a user
- * 
+ *
  * @param userId User ID
  * @returns Purchase statistics
  */

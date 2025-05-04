@@ -14,7 +14,8 @@ import {
   FaInfoCircle,
   FaSitemap,
   FaExchangeAlt,
-  FaCalendarAlt
+  FaCalendarAlt,
+  FaLink
 } from 'react-icons/fa';
 
 interface MainLayoutProps {
@@ -78,6 +79,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <Link href="/binary-mlm" className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
                   <FaSitemap className="mr-3" />
                   <span>Binary MLM</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/referrals" className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                  <FaLink className="mr-3" />
+                  <span>My Referrals</span>
                 </Link>
               </li>
               <li>

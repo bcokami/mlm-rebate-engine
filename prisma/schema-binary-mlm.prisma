@@ -51,21 +51,42 @@ model User {
   walletTransactions WalletTransaction[]
   rankAdvancements   RankAdvancement[]
   paymentMethods     UserPaymentMethod[]
+  // Sharing and referral relations
+  shareableLinks     ShareableLink[]
+  referralsGiven     ReferralCommission[] @relation("ReferrerCommissions")
+  referralsReceived  ReferralCommission[] @relation("BuyerCommissions")
+  // Admin relations
+  productAudits      ProductAudit[]
 }
 
 model Product {
-  id            Int            @id @default(autoincrement())
-  name          String
-  description   String?
-  price         Float
-  // Point Value for MLM calculations
-  pv            Float          @default(0)
-  image         String?
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  purchases     Purchase[]
-  rebateConfigs RebateConfig[]
+  id                    Int                  @id @default(autoincrement())
+  name                  String
+  sku                   String               @unique
+  description           String?
+  price                 Float
+  // MLM value calculations
+  pv                    Float                @default(0)  // Point Value
+  binaryValue           Float                @default(0)  // Binary Value
+  inventory             Int                  @default(0)  // Current stock
+  tags                  String?              // Comma-separated tags
+  image                 String?
+  isActive              Boolean              @default(true)
+  // Referral commission settings
+  referralCommissionType String?             // "percentage" or "fixed"
+  referralCommissionValue Float?             // Percentage or fixed amount
+  // Audit fields
+  lastUpdatedBy         Int?
+  lastUpdatedByName     String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  // Relations
+  purchases             Purchase[]
+  rebateConfigs         RebateConfig[]
+  shareableLinks        ShareableLink[]
+  referralCommissions   ReferralCommission[]
+  salesHistory          ProductSalesHistory[]
+  auditLogs             ProductAudit[]
 }
 
 model RebateConfig {
@@ -83,23 +104,37 @@ model RebateConfig {
 }
 
 model Purchase {
-  id              Int             @id @default(autoincrement())
-  userId          Int
-  productId       Int
-  quantity        Int
-  totalAmount     Float
+  id                Int             @id @default(autoincrement())
+  userId            Int
+  productId         Int
+  quantity          Int
+  totalAmount       Float
   // Point Value of the purchase
-  totalPV         Float           @default(0)
-  status          String          @default("completed")
-  paymentMethodId Int?
-  paymentDetails  String?         // JSON string with payment details
-  referenceNumber String?         // For tracking payment references
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  product         Product         @relation(fields: [productId], references: [id])
-  user            User            @relation(fields: [userId], references: [id])
-  paymentMethod   PaymentMethod?  @relation(fields: [paymentMethodId], references: [id])
-  rebates         Rebate[]
+  totalPV           Float           @default(0)
+  status            String          @default("completed")
+  paymentMethodId   Int?
+  paymentDetails    String?         // JSON string with payment details
+  referenceNumber   String?         // For tracking payment references
+  // Shipping information
+  shippingMethodId  Int?
+  shippingDetails   String?         // JSON string with shipping details
+  shippingAddress   String?         // Delivery address
+  shippingFee       Float?          @default(0)
+  trackingNumber    String?         // For tracking shipments
+  shippingStatus    String?         @default("pending") // "pending", "processing", "shipped", "delivered", "cancelled"
+  // Referral tracking
+  referralLinkId    Int?
+  referralSource    String?         // "link", "qrcode", etc.
+  referralData      String?         // Additional referral data as JSON
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  product           Product         @relation(fields: [productId], references: [id])
+  user              User            @relation(fields: [userId], references: [id])
+  paymentMethod     PaymentMethod?  @relation(fields: [paymentMethodId], references: [id])
+  shippingMethod    ShippingMethod? @relation(fields: [shippingMethodId], references: [id])
+  referralLink      ShareableLink?  @relation(fields: [referralLinkId], references: [id])
+  rebates           Rebate[]
+  referralCommission ReferralCommission?
 }
 
 model Rebate {
@@ -158,6 +193,21 @@ model PaymentMethod {
   updatedAt         DateTime            @updatedAt
   transactions      WalletTransaction[]
   userPaymentMethods UserPaymentMethod[]
+  purchases         Purchase[]
+}
+
+model ShippingMethod {
+  id                Int                 @id @default(autoincrement())
+  name              String              @unique
+  code              String              @unique
+  description       String?
+  isActive          Boolean             @default(true)
+  requiresDetails   Boolean             @default(false)
+  detailsSchema     String?             // JSON schema for required details
+  baseFee           Float               @default(0)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  purchases         Purchase[]
 }
 
 model UserPaymentMethod {
@@ -284,4 +334,92 @@ model MonthlyCutoff {
   updatedAt         DateTime @updatedAt
 
   @@unique([year, month])
+}
+
+// Model for tracking product audit logs
+model ProductAudit {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  userId      Int
+  userName    String
+  action      String   // "create", "update", "delete", "activate", "deactivate", etc.
+  details     String?  // JSON string with details of the changes
+  createdAt   DateTime @default(now())
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+// Model for tracking product sales history by month
+model ProductSalesHistory {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  year        Int
+  month       Int
+  quantity    Int      @default(0)
+  revenue     Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, year, month])
+}
+
+// Model for shareable product links
+model ShareableLink {
+  id                Int       @id @default(autoincrement())
+  userId            Int       // User who created the link
+  productId         Int?      // Optional: specific product being shared
+  code              String    @unique // Unique code for the link
+  type              String    @default("product") // "product", "referral", etc.
+  title             String?   // Optional custom title
+  description       String?   // Optional custom description
+  customImage       String?   // Optional custom image URL
+  isActive          Boolean   @default(true)
+  expiresAt         DateTime? // Optional expiration date
+  clickCount        Int       @default(0)
+  conversionCount   Int       @default(0) // Number of purchases made through this link
+  totalRevenue      Float     @default(0) // Total revenue generated through this link
+  totalCommission   Float     @default(0) // Total commission earned from this link
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  user              User      @relation(fields: [userId], references: [id])
+  product           Product?  @relation(fields: [productId], references: [id])
+  purchases         Purchase[]
+  linkClicks        LinkClick[]
+  referralCommissions ReferralCommission[]
+}
+
+// Model for tracking link clicks
+model LinkClick {
+  id                Int           @id @default(autoincrement())
+  linkId            Int
+  ipAddress         String?
+  userAgent         String?
+  referrer          String?
+  utmSource         String?
+  utmMedium         String?
+  utmCampaign       String?
+  createdAt         DateTime      @default(now())
+  link              ShareableLink @relation(fields: [linkId], references: [id])
+}
+
+// Model for tracking referral commissions
+model ReferralCommission {
+  id                Int           @id @default(autoincrement())
+  purchaseId        Int           @unique
+  linkId            Int
+  referrerId        Int           // User who referred (created the link)
+  buyerId           Int           // User who made the purchase
+  productId         Int
+  amount            Float         // Commission amount
+  percentage        Float         // Commission percentage
+  status            String        @default("pending") // "pending", "approved", "paid", "rejected"
+  paidAt            DateTime?     // When the commission was paid
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  purchase          Purchase      @relation(fields: [purchaseId], references: [id])
+  link              ShareableLink @relation(fields: [linkId], references: [id])
+  referrer          User          @relation("ReferrerCommissions", fields: [referrerId], references: [id])
+  buyer             User          @relation("BuyerCommissions", fields: [buyerId], references: [id])
+  product           Product       @relation(fields: [productId], references: [id])
 }
