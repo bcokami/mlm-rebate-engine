@@ -14,8 +14,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MLM Rebate Engine",
-  description: "A custom MLM rebate engine where users earn rebates instead of PV points",
+  title: "Extreme Life Herbal Product Rewards",
+  description: "Extreme Life Herbal Products Trading rewards program for distributors",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/images/20250503.svg",
+    apple: "/images/20250503.svg"
+  },
+  themeColor: "#4CAF50"
 };
 
 export default function RootLayout({

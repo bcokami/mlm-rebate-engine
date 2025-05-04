@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 600">
+  <!-- Rounded square background -->
+  <rect x="105" y="40" width="290" height="290" rx="40" ry="40" fill="#4CAF50" />
+  
+  <!-- Blue right side -->
+  <path d="M395 40 L395 330 Q395 370 355 370 L300 370 L300 150 L395 40 Z" fill="#0066FF" />
+  
+  <!-- Letter E cutout -->
+  <path d="M175 100 L300 100 L300 150 L225 150 L225 175 L275 175 L275 225 L225 225 L225 250 L300 250 L300 300 L175 300 Z" fill="white" />
+  
+  <!-- Leaf elements -->
+  <path d="M30 230 Q60 200 90 230 Q120 260 90 290 Q60 320 30 290 Z" fill="#4CAF50" />
+  <path d="M60 230 L90 200 L120 230 L90 260 Z" fill="white" />
+  <path d="M90 230 Q120 200 150 230 Q180 260 150 290 Q120 320 90 290 Z" fill="#388E3C" />
+  <path d="M120 230 L150 200 L180 230 L150 260 Z" fill="#4CAF50" />
+  
+  <!-- Water drop -->
+  <path d="M350 200 Q350 150 380 120 Q410 150 410 200 Q410 250 380 280 Q350 250 350 200 Z" fill="white" />
+  
+  <!-- Text elements -->
+  <rect x="105" y="410" width="290" height="60" fill="#424242" />
+  <text x="125" y="455" font-family="Arial" font-size="40" font-weight="bold" fill="#FFEB3B">E</text>
+  <text x="155" y="455" font-family="Arial" font-size="40" font-weight="bold" fill="white">XTREME</text>
+  <text x="305" y="455" font-family="Arial" font-size="40" font-weight="bold" fill="#FFEB3B">L</text>
+  <text x="325" y="455" font-family="Arial" font-size="40" font-weight="bold" fill="white">IFE</text>
+  
+  <text x="105" y="500" font-family="Arial" font-size="24" font-weight="bold" fill="#424242">HERBAL PRODUCTS TRADING</text>
+</svg>

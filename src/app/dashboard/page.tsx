@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import MainLayout from "@/components/layout/MainLayout";
-import { FaUsers, FaShoppingCart, FaWallet, FaChartLine } from "react-icons/fa";
+import { FaUsers, FaShoppingCart, FaWallet, FaChartLine, FaLeaf, FaPhoneAlt, FaEnvelope, FaMapMarkerAlt } from "react-icons/fa";
 
 interface DashboardStats {
   walletBalance: number;
@@ -52,6 +53,8 @@ export default function DashboardPage() {
           // Fetch rebates
           const rebatesResponse = await fetch("/api/rebates");
           const rebatesData = await rebatesResponse.json();
+          // Extract the rebates array from the response
+          const rebates = rebatesData.rebates || [];
 
           // Fetch genealogy (for downline count)
           const genealogyResponse = await fetch("/api/genealogy");
@@ -62,10 +65,12 @@ export default function DashboardPage() {
           const purchasesData = await purchasesResponse.json();
 
           // Calculate stats
-          const totalRebates = rebatesData.reduce(
-            (sum: number, rebate: any) => sum + rebate.amount,
-            0
-          );
+          const totalRebates = rebates.length > 0
+            ? rebates.reduce(
+                (sum: number, rebate: any) => sum + rebate.amount,
+                0
+              )
+            : 0;
 
           const downlineCount = genealogyData.children
             ? genealogyData.children.length
@@ -79,13 +84,15 @@ export default function DashboardPage() {
           });
 
           // Get recent rebates
-          const sortedRebates = [...rebatesData]
-            .sort(
-              (a, b) =>
-                new Date(b.createdAt).getTime() -
-                new Date(a.createdAt).getTime()
-            )
-            .slice(0, 5);
+          const sortedRebates = rebates.length > 0
+            ? [...rebates]
+                .sort(
+                  (a, b) =>
+                    new Date(b.createdAt).getTime() -
+                    new Date(a.createdAt).getTime()
+                )
+                .slice(0, 5)
+            : [];
 
           setRecentRebates(sortedRebates);
           setLoading(false);
@@ -219,7 +226,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-lg shadow mb-8">
           <div className="px-6 py-4 border-b">
             <h2 className="text-lg font-semibold">Quick Actions</h2>
           </div>
@@ -242,6 +249,135 @@ export default function DashboardPage() {
             >
               <FaWallet className="mr-2" /> Manage Wallet
             </button>
+          </div>
+        </div>
+
+        {/* Company Information */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* About Extreme Life */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-6 py-4 border-b">
+              <h2 className="text-lg font-semibold flex items-center">
+                <FaLeaf className="text-green-500 mr-2" /> About Extreme Life Herbal
+              </h2>
+            </div>
+            <div className="p-6">
+              <div className="flex justify-center mb-4">
+                <div className="relative w-32 h-32">
+                  <Image
+                    src="/images/20250503.svg"
+                    alt="Extreme Life Herbal Products Logo"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+              <p className="text-gray-600 mb-4">
+                Extreme Life Herbal Products Trading is a leading provider of high-quality herbal supplements and wellness products in the Philippines.
+              </p>
+              <p className="text-gray-600 mb-4">
+                Our mission is to promote health and wellness through natural products while providing business opportunities for our distributors.
+              </p>
+              <p className="text-gray-600 font-medium">
+                Welcome to our Herbal Product Rewards program!
+              </p>
+            </div>
+          </div>
+
+          {/* Featured Products */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-6 py-4 border-b">
+              <h2 className="text-lg font-semibold flex items-center">
+                <FaShoppingCart className="text-green-500 mr-2" /> Featured Products
+              </h2>
+            </div>
+            <div className="p-6">
+              <ul className="space-y-3">
+                <li className="flex items-start">
+                  <div className="flex-shrink-0 h-5 w-5 text-green-500">
+                    <FaLeaf />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-900">Premium Moringa Capsules</p>
+                    <p className="text-xs text-gray-500">Boost your immune system naturally</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <div className="flex-shrink-0 h-5 w-5 text-green-500">
+                    <FaLeaf />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-900">Sambong-Banaba Tea</p>
+                    <p className="text-xs text-gray-500">Natural support for kidney health</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <div className="flex-shrink-0 h-5 w-5 text-green-500">
+                    <FaLeaf />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-900">Mangosteen Extract</p>
+                    <p className="text-xs text-gray-500">Powerful antioxidant supplement</p>
+                  </div>
+                </li>
+              </ul>
+              <div className="mt-4">
+                <button
+                  onClick={() => router.push("/shop")}
+                  className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+                >
+                  View All Products
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Information */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-6 py-4 border-b">
+              <h2 className="text-lg font-semibold flex items-center">
+                <FaPhoneAlt className="text-green-500 mr-2" /> Contact Us
+              </h2>
+            </div>
+            <div className="p-6">
+              <ul className="space-y-4">
+                <li className="flex items-start">
+                  <div className="flex-shrink-0 h-5 w-5 text-green-500">
+                    <FaPhoneAlt />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-900">Phone</p>
+                    <p className="text-sm text-gray-500">+63 (2) 8123 4567</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <div className="flex-shrink-0 h-5 w-5 text-green-500">
+                    <FaEnvelope />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-900">Email</p>
+                    <p className="text-sm text-gray-500">info@extremelifeherbal.com</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <div className="flex-shrink-0 h-5 w-5 text-green-500">
+                    <FaMapMarkerAlt />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-900">Address</p>
+                    <p className="text-sm text-gray-500">123 Herbal Street, Makati City, Metro Manila, Philippines</p>
+                  </div>
+                </li>
+              </ul>
+              <div className="mt-4">
+                <button
+                  onClick={() => router.push("/about")}
+                  className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  Learn More
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

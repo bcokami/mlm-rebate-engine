@@ -1,7 +1,21 @@
 import React from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { FaHome, FaUsers, FaShoppingCart, FaWallet, FaChartLine, FaCog, FaUser, FaTrophy, FaInfoCircle } from 'react-icons/fa';
+import Image from 'next/image';
+import {
+  FaHome,
+  FaUsers,
+  FaShoppingCart,
+  FaWallet,
+  FaChartLine,
+  FaCog,
+  FaUser,
+  FaTrophy,
+  FaInfoCircle,
+  FaSitemap,
+  FaExchangeAlt,
+  FaCalendarAlt
+} from 'react-icons/fa';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -16,7 +30,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       {session && (
         <div className="w-64 bg-white shadow-md">
           <div className="p-4 border-b">
-            <h2 className="text-xl font-semibold">MLM Rebate Engine</h2>
+            <div className="flex items-center">
+              <div className="relative w-10 h-10 mr-2">
+                <Image
+                  src="/images/20250503.svg"
+                  alt="Extreme Life Logo"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <h2 className="text-xl font-semibold">Extreme Life Rewards</h2>
+            </div>
           </div>
           <nav className="mt-4">
             <ul>
@@ -51,6 +75,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 </Link>
               </li>
               <li>
+                <Link href="/binary-mlm" className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                  <FaSitemap className="mr-3" />
+                  <span>Binary MLM</span>
+                </Link>
+              </li>
+              <li>
                 <Link href="/rank-advancement" className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
                   <FaTrophy className="mr-3" />
                   <span>Rank Advancement</span>
@@ -75,6 +105,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   <span>Admin Panel</span>
                 </Link>
               </li>
+              <li>
+                <Link href="/admin/mlm-config" className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 pl-10">
+                  <FaExchangeAlt className="mr-3" />
+                  <span>MLM Configuration</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/admin/mlm-config/cutoff" className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 pl-10">
+                  <FaCalendarAlt className="mr-3" />
+                  <span>Monthly Cutoff</span>
+                </Link>
+              </li>
             </ul>
           </nav>
         </div>
@@ -88,8 +130,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             <div className="flex justify-between h-16">
               <div className="flex items-center">
                 <Link href="/" className="flex items-center">
-                  <img src="/logo.svg" alt="Extreme Life Herbal Products Logo" className="h-10 w-10 mr-2" />
-                  <h1 className="text-xl font-semibold text-green-700">Extreme Life Herbal</h1>
+                  <div className="relative w-10 h-10 mr-2">
+                    <Image
+                      src="/images/20250503.svg"
+                      alt="Extreme Life Herbal Products Logo"
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
+                  <h1 className="text-xl font-semibold text-green-700">Extreme Life Herbal Product Rewards</h1>
                 </Link>
               </div>
               <div className="flex items-center">

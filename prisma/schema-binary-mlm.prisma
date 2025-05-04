@@ -1,0 +1,287 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Rank {
+  id                   Int                @id @default(autoincrement())
+  name                 String             @unique
+  level                Int                @unique
+  description          String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  users                User[]
+  requirements         RankRequirement?
+  previousAdvancements RankAdvancement[]  @relation("PreviousRank")
+  newAdvancements      RankAdvancement[]  @relation("NewRank")
+  qualifiedFor         RankRequirement[]  @relation("QualifiedRank")
+}
+
+model User {
+  id                 Int                 @id @default(autoincrement())
+  email              String              @unique
+  password           String
+  name               String
+  phone              String?
+  profileImage       String?
+  rankId             Int                 @default(1)
+  uplineId           Int?
+  // Binary placement fields
+  leftLegId          Int?                // ID of the user in the left position
+  rightLegId         Int?                // ID of the user in the right position
+  placementPosition  String?             // "left" or "right" - position in upline's structure
+  walletBalance      Float               @default(0)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  purchases          Purchase[]
+  rebatesGenerated   Rebate[]            @relation("RebateGenerator")
+  rebatesReceived    Rebate[]            @relation("RebateReceiver")
+  upline             User?               @relation("Downline", fields: [uplineId], references: [id])
+  downline           User[]              @relation("Downline")
+  // Binary leg relationships
+  leftLeg            User?               @relation("LeftLeg", fields: [leftLegId], references: [id])
+  rightLeg           User?               @relation("RightLeg", fields: [rightLegId], references: [id])
+  leftParent         User[]              @relation("LeftLeg")
+  rightParent        User[]              @relation("RightLeg")
+  rank               Rank                @relation(fields: [rankId], references: [id])
+  walletTransactions WalletTransaction[]
+  rankAdvancements   RankAdvancement[]
+  paymentMethods     UserPaymentMethod[]
+}
+
+model Product {
+  id            Int            @id @default(autoincrement())
+  name          String
+  description   String?
+  price         Float
+  // Point Value for MLM calculations
+  pv            Float          @default(0)
+  image         String?
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  purchases     Purchase[]
+  rebateConfigs RebateConfig[]
+}
+
+model RebateConfig {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  level       Int
+  rewardType  String   @default("percentage") // "percentage" or "fixed"
+  percentage  Float    @default(0)
+  fixedAmount Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  product     Product  @relation(fields: [productId], references: [id])
+
+  @@unique([productId, level])
+}
+
+model Purchase {
+  id              Int             @id @default(autoincrement())
+  userId          Int
+  productId       Int
+  quantity        Int
+  totalAmount     Float
+  // Point Value of the purchase
+  totalPV         Float           @default(0)
+  status          String          @default("completed")
+  paymentMethodId Int?
+  paymentDetails  String?         // JSON string with payment details
+  referenceNumber String?         // For tracking payment references
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  product         Product         @relation(fields: [productId], references: [id])
+  user            User            @relation(fields: [userId], references: [id])
+  paymentMethod   PaymentMethod?  @relation(fields: [paymentMethodId], references: [id])
+  rebates         Rebate[]
+}
+
+model Rebate {
+  id                Int               @id @default(autoincrement())
+  purchaseId        Int
+  receiverId        Int
+  generatorId       Int
+  level             Int
+  rewardType        String            @default("percentage") // "percentage" or "fixed"
+  percentage        Float
+  amount            Float
+  // PV-based amount
+  pvAmount          Float             @default(0)
+  status            String            @default("pending")
+  processedAt       DateTime?
+  walletTransactionId Int?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  generator         User              @relation("RebateGenerator", fields: [generatorId], references: [id])
+  receiver          User              @relation("RebateReceiver", fields: [receiverId], references: [id])
+  purchase          Purchase          @relation(fields: [purchaseId], references: [id])
+  walletTransaction WalletTransaction? @relation(fields: [walletTransactionId], references: [id])
+
+  @@index([purchaseId])
+  @@index([receiverId])
+  @@index([generatorId])
+  @@index([status])
+}
+
+model WalletTransaction {
+  id              Int             @id @default(autoincrement())
+  userId          Int
+  amount          Float
+  type            String
+  status          String          @default("completed")
+  description     String?
+  paymentMethodId Int?
+  paymentDetails  String?         // JSON string with payment details
+  referenceNumber String?         // For tracking payment references
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  user            User            @relation(fields: [userId], references: [id])
+  paymentMethod   PaymentMethod?  @relation(fields: [paymentMethodId], references: [id])
+  rebates         Rebate[]
+}
+
+model PaymentMethod {
+  id                Int                 @id @default(autoincrement())
+  name              String              @unique
+  code              String              @unique
+  description       String?
+  isActive          Boolean             @default(true)
+  requiresDetails   Boolean             @default(false)
+  detailsSchema     String?             // JSON schema for required details
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  transactions      WalletTransaction[]
+  userPaymentMethods UserPaymentMethod[]
+}
+
+model UserPaymentMethod {
+  id              Int           @id @default(autoincrement())
+  userId          Int
+  paymentMethodId Int
+  details         String        // JSON string with payment details (e.g., GCash number)
+  isDefault       Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  user            User          @relation(fields: [userId], references: [id])
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+
+  @@unique([userId, paymentMethodId])
+}
+
+model RankRequirement {
+  id                Int      @id @default(autoincrement())
+  rankId            Int      @unique
+  personalPV        Float    @default(0)
+  groupPV           Float    @default(0)
+  directReferrals   Int      @default(0)
+  qualifiedRankId   Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  rank              Rank     @relation(fields: [rankId], references: [id])
+  qualifiedRank     Rank?    @relation("QualifiedRank", fields: [qualifiedRankId], references: [id])
+}
+
+model RankAdvancement {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  previousRankId Int
+  newRankId     Int
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id])
+  previousRank  Rank     @relation("PreviousRank", fields: [previousRankId], references: [id])
+  newRank       Rank     @relation("NewRank", fields: [newRankId], references: [id])
+}
+
+model BonusReward {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  rewardType  String   @default("fixed") // "fixed" or "percentage"
+  amount      Float    @default(0)
+  percentage  Float    @default(0)
+  triggerType String   // "rank_advancement", "sales_milestone", "team_size", etc.
+  triggerValue String? // JSON string with trigger conditions
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// New model for tracking monthly PV and commissions
+model MonthlyPerformance {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  year              Int
+  month             Int
+  personalPV        Float    @default(0)
+  leftLegPV         Float    @default(0)
+  rightLegPV        Float    @default(0)
+  totalGroupPV      Float    @default(0)
+  directReferralBonus Float  @default(0)
+  levelCommissions  Float    @default(0)
+  groupVolumeBonus  Float    @default(0)
+  totalEarnings     Float    @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([userId, year, month])
+}
+
+// New model for commission rates configuration
+model CommissionRate {
+  id                Int      @id @default(autoincrement())
+  type              String   // "direct_referral", "level_commission", "group_volume", "performance_bonus"
+  level             Int?     // For level-based commissions
+  percentage        Float    @default(0)
+  fixedAmount       Float    @default(0)
+  description       String?
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([type, level])
+}
+
+// System configuration model
+model SystemConfig {
+  id                Int      @id @default(autoincrement())
+  key               String   @unique
+  value             String
+  description       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// Performance bonus tiers
+model PerformanceBonusTier {
+  id                Int      @id @default(autoincrement())
+  name              String
+  minSales          Float    // Minimum sales amount to qualify
+  maxSales          Float?   // Maximum sales amount for this tier (null for unlimited)
+  bonusType         String   // "percentage" or "fixed"
+  percentage        Float    @default(0)
+  fixedAmount       Float    @default(0)
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// Monthly cutoff configuration
+model MonthlyCutoff {
+  id                Int      @id @default(autoincrement())
+  year              Int
+  month             Int
+  cutoffDay         Int      // Day of month for cutoff
+  processedAt       DateTime?
+  status            String   @default("pending") // "pending", "processing", "completed", "failed"
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([year, month])
+}

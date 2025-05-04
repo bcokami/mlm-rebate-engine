@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
+import AdminLayout from "@/components/layout/AdminLayout";
 import UserManager from "@/components/admin/UserManager";
 import { FaUsers } from "react-icons/fa";
 
@@ -42,11 +43,11 @@ export default function AdminUsersPage() {
 
   if (status === "loading" || loading) {
     return (
-      <MainLayout>
+      <AdminLayout>
         <div className="flex items-center justify-center h-64">
           <div className="text-xl">Loading...</div>
         </div>
-      </MainLayout>
+      </AdminLayout>
     );
   }
 
@@ -66,7 +67,7 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <MainLayout>
+    <AdminLayout>
       <div>
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold flex items-center">

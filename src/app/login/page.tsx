@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { generateCsrfToken } from "@/lib/csrf";
 
 export default function LoginPage() {
@@ -79,11 +80,24 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+          <div className="flex justify-center">
+            <div className="relative w-32 h-32">
+              <Image
+                src="/images/20250503.svg"
+                alt="Extreme Life Herbal Products Logo"
+                fill
+                className="object-contain"
+              />
+            </div>
+          </div>
+          <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900">
+            Extreme Life Herbal
           </h2>
+          <h3 className="text-center text-xl text-green-700 font-medium">
+            Herbal Product Rewards
+          </h3>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Or{" "}
+            Sign in to your account or{" "}
             <Link
               href="/register"
               className="font-medium text-blue-600 hover:text-blue-500"

@@ -1,0 +1,14 @@
+{
+  "name": "Extreme Life Herbal Product Rewards",
+  "short_name": "Extreme Life",
+  "icons": [
+    {
+      "src": "/images/20250503.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ],
+  "theme_color": "#4CAF50",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}

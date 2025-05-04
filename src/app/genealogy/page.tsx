@@ -27,13 +27,32 @@ interface GenealogyUser {
   email: string;
   rankId: number;
   rank: {
+    id?: number;
     name: string;
   };
   level: number;
+  walletBalance?: number;
+  createdAt?: Date;
   _count: {
     downline: number;
   };
   children?: GenealogyUser[];
+  performanceMetrics?: {
+    personalSales: number;
+    teamSales: number;
+    totalSales: number;
+    rebatesEarned: number;
+    teamSize: number;
+    newTeamMembers: number;
+    rankHistory: {
+      rankId: number;
+      rankName: string;
+      achievedAt: Date;
+    }[];
+    activityScore: number;
+    lastUpdated: Date;
+  } | null;
+  hasMoreChildren?: boolean;
 }
 
 export default function GenealogyPage() {
@@ -50,6 +69,12 @@ export default function GenealogyPage() {
     levelCounts: Record<number, number>;
     totalDownlineBalance: number;
     directDownlineCount: number;
+    rankDistribution?: {
+      rankId: number;
+      rankName: string;
+      count: number;
+    }[];
+    lastUpdated?: Date;
   } | null>(null);
   const [showStats, setShowStats] = useState(true);
   const [useEnhancedView, setUseEnhancedView] = useState(true);
@@ -81,6 +106,12 @@ export default function GenealogyPage() {
       // Add stats parameter
       params.append("includeStats", "true");
 
+      // Add performance metrics parameter
+      params.append("includePerformanceMetrics", "true");
+
+      // Add lazy loading parameter
+      params.append("lazyLoad", "true");
+
       const response = await fetch(`/api/genealogy?${params.toString()}`);
 
       if (!response.ok) {
@@ -106,6 +137,49 @@ export default function GenealogyPage() {
     } catch (error) {
       console.error("Error fetching genealogy:", error);
       setLoading(false);
+    }
+  };
+
+  // Function to export genealogy data
+  const exportGenealogy = async (format: 'csv' | 'json') => {
+    try {
+      // Build query parameters
+      const params = new URLSearchParams();
+      params.append("maxLevel", maxLevel.toString());
+      params.append("format", format);
+
+      if (targetUserId) {
+        params.append("userId", targetUserId.toString());
+      }
+
+      // For CSV format, directly open the download
+      if (format === 'csv') {
+        window.open(`/api/genealogy/export?${params.toString()}`, '_blank');
+        return;
+      }
+
+      // For JSON format, fetch the data first
+      const response = await fetch(`/api/genealogy/export?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to export genealogy: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Create a download link for the JSON data
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `genealogy_export_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error exporting genealogy:", error);
+      alert("Failed to export genealogy data. Please try again.");
     }
   };
 
@@ -285,17 +359,39 @@ export default function GenealogyPage() {
               </div>
             </div>
 
-            <div>
-              <h3 className="text-sm font-semibold mb-2">Members by Level</h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                {Object.entries(statistics.levelCounts).map(([level, count]) => (
-                  <div key={level} className="bg-gray-50 p-2 rounded-md text-center">
-                    <div className="text-xs text-gray-500">Level {level}</div>
-                    <div className="font-medium">{count}</div>
-                  </div>
-                ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-sm font-semibold mb-2">Members by Level</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {Object.entries(statistics.levelCounts).map(([level, count]) => (
+                    <div key={level} className="bg-gray-50 p-2 rounded-md text-center">
+                      <div className="text-xs text-gray-500">Level {level}</div>
+                      <div className="font-medium">{count}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              {statistics.rankDistribution && statistics.rankDistribution.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Members by Rank</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {statistics.rankDistribution.map((rank) => (
+                      <div key={rank.rankId} className="bg-gray-50 p-2 rounded-md text-center">
+                        <div className="text-xs text-gray-500">{rank.rankName}</div>
+                        <div className="font-medium">{rank.count}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+
+            {statistics.lastUpdated && (
+              <div className="mt-3 text-xs text-gray-500 text-right">
+                Last updated: {new Date(statistics.lastUpdated).toLocaleString()}
+              </div>
+            )}
           </div>
         )}
 
@@ -314,13 +410,53 @@ export default function GenealogyPage() {
 
         {/* Action buttons */}
         <div className="mb-6 flex flex-wrap gap-2">
-          <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-            <FaDownload className="mr-2" /> Export Genealogy
-          </button>
-          <button className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+          <div className="relative group">
+            <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+              <FaDownload className="mr-2" /> Export Genealogy
+            </button>
+            <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden group-hover:block z-10">
+              <div className="py-1" role="menu" aria-orientation="vertical">
+                <button
+                  onClick={() => exportGenealogy('csv')}
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                  role="menuitem"
+                >
+                  Export as CSV
+                </button>
+                <button
+                  onClick={() => exportGenealogy('json')}
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                  role="menuitem"
+                >
+                  Export as JSON
+                </button>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => window.print()}
+            className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+          >
             <FaPrint className="mr-2" /> Print View
           </button>
-          <button className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+          <button
+            onClick={() => {
+              if (genealogy) {
+                const text = `Check out my Extreme Life Herbal Products network with ${statistics?.totalUsers || 0} members!`;
+                if (navigator.share) {
+                  navigator.share({
+                    title: 'My Extreme Life Network',
+                    text: text,
+                    url: window.location.href,
+                  }).catch(err => console.error('Error sharing:', err));
+                } else {
+                  navigator.clipboard.writeText(`${text} ${window.location.href}`);
+                  alert('Network link copied to clipboard!');
+                }
+              }
+            }}
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+          >
             <FaShare className="mr-2" /> Share Network
           </button>
         </div>

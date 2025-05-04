@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -93,9 +94,25 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create a new account
+          <div className="flex justify-center">
+            <div className="relative w-32 h-32">
+              <Image
+                src="/images/20250503.svg"
+                alt="Extreme Life Herbal Products Logo"
+                fill
+                className="object-contain"
+              />
+            </div>
+          </div>
+          <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900">
+            Extreme Life Herbal
           </h2>
+          <h3 className="text-center text-xl text-green-700 font-medium">
+            Herbal Product Rewards
+          </h3>
+          <h4 className="text-center text-lg font-medium mt-2">
+            Create a new account
+          </h4>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{" "}
             <Link

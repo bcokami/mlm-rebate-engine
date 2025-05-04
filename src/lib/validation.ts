@@ -65,15 +65,21 @@ export const productSchema = z.object({
 export const purchaseSchema = z.object({
   productId: z.number().int().positive('Product ID must be a positive integer'),
   quantity: z.number().int().positive('Quantity must be a positive integer'),
+  paymentMethodId: z.number().int().positive('Payment method ID must be a positive integer').optional(),
+  paymentDetails: z.record(z.any()).optional(),
+  referenceNumber: z.string().optional(),
 });
 
 // Wallet transaction validation schema
 export const walletTransactionSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
-  type: z.enum(['withdrawal'], {
+  type: z.enum(['withdrawal', 'deposit'], {
     errorMap: () => ({ message: 'Invalid transaction type' }),
   }),
   description: z.string().optional(),
+  paymentMethodId: z.number().int().positive('Payment method ID must be a positive integer').optional(),
+  paymentDetails: z.record(z.any()).optional(),
+  referenceNumber: z.string().optional(),
 });
 
 // Rank advancement validation schema

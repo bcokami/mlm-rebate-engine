@@ -2,7 +2,12 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getPaginatedDownline, getDownlineLevelCounts } from "@/lib/genealogyService";
+import {
+  getPaginatedDownline,
+  getDownlineLevelCounts,
+  loadAdditionalLevels,
+  getUserPerformanceMetrics
+} from "@/lib/genealogyService";
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,7 +55,16 @@ export async function GET(request: NextRequest) {
     const pageSizeParam = url.searchParams.get("pageSize");
     const pageSize = pageSizeParam ? parseInt(pageSizeParam) : 10;
     const includeStats = url.searchParams.get("includeStats") === "true";
+    const includePerformanceMetrics = url.searchParams.get("includePerformanceMetrics") === "true";
     const targetUserIdParam = url.searchParams.get("userId");
+    const loadAdditionalLevelsParam = url.searchParams.get("loadAdditionalLevels");
+    const currentLevelParam = url.searchParams.get("currentLevel");
+    const filterRankParam = url.searchParams.get("filterRank");
+    const filterJoinedAfterParam = url.searchParams.get("filterJoinedAfter");
+    const filterJoinedBeforeParam = url.searchParams.get("filterJoinedBefore");
+    const sortByParam = url.searchParams.get("sortBy");
+    const sortDirectionParam = url.searchParams.get("sortDirection") as "asc" | "desc" | null;
+    const lazyLoadLevels = url.searchParams.get("lazyLoad") === "true";
 
     // Determine which user's genealogy to fetch
     let targetUserId = userId;
@@ -62,14 +76,61 @@ export async function GET(request: NextRequest) {
       targetUserId = parseInt(targetUserIdParam);
     }
 
-    // Get paginated downline
-    const genealogyData = await getPaginatedDownline(targetUserId, maxLevel, page, pageSize);
+    // Check if we need to load additional levels for a specific node
+    if (loadAdditionalLevelsParam === "true" && currentLevelParam) {
+      const currentLevel = parseInt(currentLevelParam);
+      const additionalLevelsData = await loadAdditionalLevels(
+        targetUserId,
+        currentLevel,
+        maxLevel
+      );
+
+      return NextResponse.json(additionalLevelsData);
+    }
+
+    // Build options for the genealogy query
+    const options: any = {
+      includePerformanceMetrics,
+      lazyLoadLevels
+    };
+
+    // Add filtering options if provided
+    if (filterRankParam) {
+      options.filterRank = parseInt(filterRankParam);
+    }
+
+    if (filterJoinedAfterParam) {
+      options.filterJoinedAfter = new Date(filterJoinedAfterParam);
+    }
+
+    if (filterJoinedBeforeParam) {
+      options.filterJoinedBefore = new Date(filterJoinedBeforeParam);
+    }
+
+    // Add sorting options if provided
+    if (sortByParam) {
+      options.sortBy = sortByParam;
+    }
+
+    if (sortDirectionParam) {
+      options.sortDirection = sortDirectionParam;
+    }
+
+    // Get paginated downline with options
+    const genealogyData = await getPaginatedDownline(
+      targetUserId,
+      maxLevel,
+      page,
+      pageSize,
+      options
+    );
 
     // Format the response
     const genealogyTree = {
       ...genealogyData.user,
       children: genealogyData.downline,
       pagination: genealogyData.pagination,
+      metadata: genealogyData.metadata,
     };
 
     // Calculate statistics if requested
@@ -100,11 +161,35 @@ export async function GET(request: NextRequest) {
       // Sum up wallet balances
       totalDownlineBalance = downlineUsers.reduce((sum, user) => sum + (user.walletBalance || 0), 0);
 
+      // Get rank distribution
+      const rankDistribution = await prisma.user.groupBy({
+        by: ['rankId'],
+        where: {
+          uplineId: targetUserId,
+        },
+        _count: {
+          id: true,
+        },
+      });
+
+      // Get ranks to map IDs to names
+      const ranks = await prisma.rank.findMany();
+      const rankMap = new Map(ranks.map(rank => [rank.id, rank.name]));
+
+      // Format rank distribution
+      const formattedRankDistribution = rankDistribution.map(item => ({
+        rankId: item.rankId,
+        rankName: rankMap.get(item.rankId) || 'Unknown',
+        count: item._count.id,
+      }));
+
       statistics = {
         totalUsers,
         levelCounts,
         totalDownlineBalance,
         directDownlineCount,
+        rankDistribution: formattedRankDistribution,
+        lastUpdated: new Date(),
       };
     }
 

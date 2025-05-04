@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import MainLayout from "@/components/layout/MainLayout";
-import { FaUser, FaEdit, FaCheck, FaTimes, FaSpinner, FaKey } from "react-icons/fa";
+import { FaUser, FaEdit, FaCheck, FaTimes, FaSpinner, FaKey, FaCreditCard } from "react-icons/fa";
 import Image from "next/image";
 
 interface UserProfile {
@@ -79,32 +80,32 @@ export default function ProfilePage() {
     try {
       // Get the user ID from the session
       const userEmail = session?.user?.email;
-      
+
       if (!userEmail) {
         throw new Error("User email not found in session");
       }
-      
+
       // First, get the user ID
       const usersResponse = await fetch(`/api/users?search=${encodeURIComponent(userEmail)}`);
       const usersData = await usersResponse.json();
-      
+
       if (!usersData.users || usersData.users.length === 0) {
         throw new Error("User not found");
       }
-      
+
       const userId = usersData.users[0].id;
-      
+
       // Then, get the detailed profile
       const response = await fetch(`/api/users/${userId}`);
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to fetch profile");
       }
-      
+
       const data = await response.json();
       setProfile(data);
-      
+
       // Initialize form data
       setFormData({
         name: data.name,
@@ -185,11 +186,11 @@ export default function ProfilePage() {
 
       // Refresh profile data
       await fetchProfile();
-      
+
       setSuccessMessage("Profile updated successfully");
       setEditMode(false);
       setChangePassword(false);
-      
+
       // Reset password fields
       setPasswordData({
         currentPassword: "",
@@ -213,14 +214,14 @@ export default function ProfilePage() {
         profileImage: profile.profileImage || "",
       });
     }
-    
+
     // Reset password fields
     setPasswordData({
       currentPassword: "",
       newPassword: "",
       confirmNewPassword: "",
     });
-    
+
     setEditMode(false);
     setChangePassword(false);
     setError("");
@@ -304,14 +305,22 @@ export default function ProfilePage() {
                   {profile.rank.name}
                 </div>
 
-                <div className="w-full mt-4">
+                <div className="w-full mt-4 space-y-2">
                   {!editMode ? (
-                    <button
-                      onClick={() => setEditMode(true)}
-                      className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    >
-                      <FaEdit className="mr-2" /> Edit Profile
-                    </button>
+                    <>
+                      <button
+                        onClick={() => setEditMode(true)}
+                        className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                      >
+                        <FaEdit className="mr-2" /> Edit Profile
+                      </button>
+                      <Link
+                        href="/profile/payment-methods"
+                        className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                      >
+                        <FaCreditCard className="mr-2" /> Manage Payment Methods
+                      </Link>
+                    </>
                   ) : (
                     <div className="flex space-x-2">
                       <button

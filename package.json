@@ -18,7 +18,10 @@
     "restore": "node scripts/restore.js",
     "scheduled-backup": "node scripts/scheduled-backup.js",
     "generate-test-users": "node scripts/generate-test-users.js",
-    "cleanup-test-users": "node scripts/cleanup-test-users.js"
+    "cleanup-test-users": "node scripts/cleanup-test-users.js",
+    "seed:binary-mlm": "node scripts/seed-binary-mlm.js",
+    "simulate:earnings": "node scripts/simulate-earnings.js",
+    "migrate:binary-mlm": "prisma migrate dev --name binary_mlm_structure"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.9.0",
