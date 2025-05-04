@@ -35,6 +35,7 @@ model User {
   rightLegId         Int?                // ID of the user in the right position
   placementPosition  String?             // "left" or "right" - position in upline's structure
   walletBalance      Float               @default(0)
+  metadata           Json?               // Additional metadata (e.g., memberId, import info)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   purchases          Purchase[]
@@ -57,6 +58,7 @@ model User {
   referralsReceived  ReferralCommission[] @relation("BuyerCommissions")
   // Admin relations
   productAudits      ProductAudit[]
+  userAudits         UserAudit[]
 }
 
 model Product {
@@ -347,6 +349,20 @@ model ProductAudit {
   createdAt   DateTime @default(now())
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [userId], references: [id])
+}
+
+// Model for tracking user audit logs
+model UserAudit {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  action      String   // "import", "export", "create", "update", "delete", etc.
+  details     String?  // JSON string with details of the action
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 // Model for tracking product sales history by month

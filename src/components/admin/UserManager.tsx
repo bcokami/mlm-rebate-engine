@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
-  FaSearch, FaFilter, FaEdit, FaTrash, FaUserPlus, 
-  FaSpinner, FaChevronDown, FaChevronUp, FaEye, 
-  FaCheck, FaTimes, FaUserCog
+import {
+  FaSearch, FaFilter, FaEdit, FaTrash, FaUserPlus,
+  FaSpinner, FaChevronDown, FaChevronUp, FaEye,
+  FaCheck, FaTimes, FaUserCog, FaFileImport,
+  FaFileExport, FaHistory
 } from "react-icons/fa";
+import UserImportModal from "./users/UserImportModal";
+import UserExportModal from "./users/UserExportModal";
+import UserImportHistory from "./users/UserImportHistory";
 
 interface User {
   id: number;
@@ -72,6 +76,11 @@ const UserManager: React.FC = () => {
     uplineId: "",
   });
 
+  // State for import/export modals
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showImportHistory, setShowImportHistory] = useState(false);
+
   // State for messages
   const [message, setMessage] = useState({ type: "", text: "" });
 
@@ -89,21 +98,21 @@ const UserManager: React.FC = () => {
       const params = new URLSearchParams();
       params.append("page", pagination.page.toString());
       params.append("pageSize", pagination.pageSize.toString());
-      
+
       if (search) {
         params.append("search", search);
       }
-      
+
       if (rankFilter) {
         params.append("rankId", rankFilter);
       }
-      
+
       const response = await fetch(`/api/users?${params.toString()}`);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch users: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       setUsers(data.users);
       setPagination(data.pagination);
@@ -122,11 +131,11 @@ const UserManager: React.FC = () => {
   const fetchRanks = async () => {
     try {
       const response = await fetch("/api/ranks");
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch ranks: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       setRanks(data);
     } catch (error) {
@@ -163,8 +172,8 @@ const UserManager: React.FC = () => {
   // Handle page size change
   const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newPageSize = parseInt(e.target.value);
-    setPagination(prev => ({ 
-      ...prev, 
+    setPagination(prev => ({
+      ...prev,
       pageSize: newPageSize,
       page: 1 // Reset to first page when changing page size
     }));
@@ -200,12 +209,12 @@ const UserManager: React.FC = () => {
   // Handle edit form submit
   const handleEditFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedUser) return;
-    
+
     setLoading(true);
     setMessage({ type: "", text: "" });
-    
+
     try {
       const response = await fetch(`/api/users/${selectedUser.id}`, {
         method: "PATCH",
@@ -219,20 +228,20 @@ const UserManager: React.FC = () => {
           uplineId: editFormData.uplineId ? parseInt(editFormData.uplineId) : null,
         }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to update user");
       }
-      
+
       setMessage({
         type: "success",
         text: "User updated successfully",
       });
-      
+
       // Refresh users list
       fetchUsers();
-      
+
       // Close edit form
       setShowEditForm(false);
     } catch (error: any) {
@@ -250,25 +259,25 @@ const UserManager: React.FC = () => {
     if (!confirm("Are you sure you want to reset this user's wallet balance to 0?")) {
       return;
     }
-    
+
     setLoading(true);
     setMessage({ type: "", text: "" });
-    
+
     try {
       const response = await fetch(`/api/users/${userId}/wallet/reset`, {
         method: "POST",
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to reset wallet balance");
       }
-      
+
       setMessage({
         type: "success",
         text: "Wallet balance reset successfully",
       });
-      
+
       // Refresh users list
       fetchUsers();
     } catch (error: any) {
@@ -279,6 +288,34 @@ const UserManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle import modal
+  const handleOpenImportModal = () => {
+    setShowImportModal(true);
+  };
+
+  const handleCloseImportModal = () => {
+    setShowImportModal(false);
+  };
+
+  const handleImportComplete = () => {
+    // Refresh users list after import
+    fetchUsers();
+  };
+
+  // Handle export modal
+  const handleOpenExportModal = () => {
+    setShowExportModal(true);
+  };
+
+  const handleCloseExportModal = () => {
+    setShowExportModal(false);
+  };
+
+  // Handle import history
+  const handleToggleImportHistory = () => {
+    setShowImportHistory(!showImportHistory);
   };
 
   return (
@@ -306,8 +343,22 @@ const UserManager: React.FC = () => {
               </button>
             </div>
           </form>
-          
-          <div className="flex items-center">
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleOpenImportModal}
+              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            >
+              <FaFileImport className="mr-2" />
+              Import
+            </button>
+            <button
+              onClick={handleOpenExportModal}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              <FaFileExport className="mr-2" />
+              Export
+            </button>
             <button
               onClick={() => setShowFilters(!showFilters)}
               className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
@@ -316,9 +367,16 @@ const UserManager: React.FC = () => {
               Filters
               {showFilters ? <FaChevronUp className="ml-2" /> : <FaChevronDown className="ml-2" />}
             </button>
+            <button
+              onClick={handleToggleImportHistory}
+              className="flex items-center px-4 py-2 bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200"
+            >
+              <FaHistory className="mr-2" />
+              History
+            </button>
           </div>
         </div>
-        
+
         {/* Expanded Filters */}
         {showFilters && (
           <div className="mt-4 p-4 bg-gray-50 rounded-md">
@@ -344,7 +402,7 @@ const UserManager: React.FC = () => {
           </div>
         )}
       </div>
-      
+
       {/* Message Display */}
       {message.text && (
         <div
@@ -357,7 +415,7 @@ const UserManager: React.FC = () => {
           {message.text}
         </div>
       )}
-      
+
       {/* Users Table */}
       <div className="overflow-x-auto">
         {loading && users.length === 0 ? (
@@ -472,7 +530,7 @@ const UserManager: React.FC = () => {
           </div>
         )}
       </div>
-      
+
       {/* Pagination */}
       {users.length > 0 && (
         <div className="px-6 py-4 flex items-center justify-between border-t">
@@ -491,7 +549,7 @@ const UserManager: React.FC = () => {
               <option value="100">100</option>
             </select>
           </div>
-          
+
           <div className="flex items-center">
             <span className="text-sm text-gray-700 mr-4">
               {pagination.page} of {pagination.totalPages} pages
@@ -530,7 +588,7 @@ const UserManager: React.FC = () => {
           </div>
         </div>
       )}
-      
+
       {/* User Details Modal */}
       {showUserDetails && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -544,7 +602,7 @@ const UserManager: React.FC = () => {
                 <FaTimes />
               </button>
             </div>
-            
+
             <div className="p-6">
               <div className="flex items-center mb-6">
                 <div className="h-20 w-20 flex-shrink-0">
@@ -572,7 +630,7 @@ const UserManager: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <h4 className="text-sm font-medium text-gray-500 mb-1">Phone</h4>
@@ -601,7 +659,7 @@ const UserManager: React.FC = () => {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => {
@@ -623,7 +681,7 @@ const UserManager: React.FC = () => {
           </div>
         </div>
       )}
-      
+
       {/* Edit User Modal */}
       {showEditForm && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -637,7 +695,7 @@ const UserManager: React.FC = () => {
                 <FaTimes />
               </button>
             </div>
-            
+
             <form onSubmit={handleEditFormSubmit} className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
@@ -710,7 +768,7 @@ const UserManager: React.FC = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-3">
                 <button
                   type="submit"
@@ -736,6 +794,35 @@ const UserManager: React.FC = () => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Import Modal */}
+      <UserImportModal
+        isOpen={showImportModal}
+        onClose={handleCloseImportModal}
+        onImportComplete={handleImportComplete}
+      />
+
+      {/* Export Modal */}
+      <UserExportModal
+        isOpen={showExportModal}
+        onClose={handleCloseExportModal}
+      />
+
+      {/* Import History */}
+      {showImportHistory && (
+        <div className="mt-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">Import/Export History</h3>
+            <button
+              onClick={handleToggleImportHistory}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <FaTimes />
+            </button>
+          </div>
+          <UserImportHistory limit={10} />
         </div>
       )}
     </div>
