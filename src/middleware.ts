@@ -74,6 +74,36 @@ export async function middleware(request: NextRequest) {
   // Add security headers to all responses
   const response = NextResponse.next();
 
+  // Add cache control headers for API routes
+  if (pathname.startsWith('/api/')) {
+    // For optimized genealogy API, add cache control headers
+    if (pathname.startsWith('/api/genealogy/optimized')) {
+      // Cache for a short time (5 minutes)
+      response.headers.set(
+        'Cache-Control',
+        'public, max-age=300, s-maxage=300, stale-while-revalidate=60'
+      );
+    } else if (pathname.startsWith('/api/products/')) {
+      // Cache product data for longer (1 hour)
+      response.headers.set(
+        'Cache-Control',
+        'public, max-age=3600, s-maxage=3600, stale-while-revalidate=300'
+      );
+    } else if (pathname.startsWith('/api/ranks/')) {
+      // Cache rank data for longer (1 day)
+      response.headers.set(
+        'Cache-Control',
+        'public, max-age=86400, s-maxage=86400, stale-while-revalidate=3600'
+      );
+    } else {
+      // Default for other API routes - no caching
+      response.headers.set(
+        'Cache-Control',
+        'no-store, no-cache, must-revalidate, proxy-revalidate'
+      );
+    }
+  }
+
   // Content Security Policy
   response.headers.set(
     "Content-Security-Policy",
