@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import MainLayout from "@/components/layout/MainLayout";
 import GenealogyTree from "@/components/genealogy/GenealogyTree";
 import EnhancedGenealogyTree from "@/components/genealogy/EnhancedGenealogyTree";
@@ -17,7 +18,14 @@ import {
   FaPrint,
   FaShare,
   FaLayerGroup,
-  FaWallet
+  FaWallet,
+  FaExchangeAlt,
+  FaFileExport,
+  FaEdit,
+  FaMobile,
+  FaPlug,
+  FaChartLine,
+  FaBell
 } from "react-icons/fa";
 // import { motion } from "framer-motion";
 
@@ -252,6 +260,84 @@ export default function GenealogyPage() {
             >
               Standard View
             </button>
+            <Link
+              href="/genealogy/optimized"
+              className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 flex items-center"
+            >
+              <FaLayerGroup className="mr-2" /> Try New Optimized View
+            </Link>
+            <Link
+              href="/genealogy/basic-flow"
+              className="px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700 flex items-center"
+            >
+              <FaLayerGroup className="mr-2" /> Basic Flow View
+            </Link>
+            <Link
+              href="/genealogy/enhanced-flow"
+              className="px-4 py-2 rounded-md bg-green-600 text-white hover:bg-green-700 flex items-center"
+            >
+              <FaLayerGroup className="mr-2" /> Enhanced Flow View
+            </Link>
+            <Link
+              href="/genealogy/compare"
+              className="px-4 py-2 rounded-md bg-yellow-600 text-white hover:bg-yellow-700 flex items-center"
+            >
+              <FaExchangeAlt className="mr-2" /> Compare Views
+            </Link>
+            <Link
+              href="/genealogy/search"
+              className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 flex items-center"
+            >
+              <FaSearch className="mr-2" /> Advanced Search
+            </Link>
+            <Link
+              href="/genealogy/export"
+              className="px-4 py-2 rounded-md bg-green-600 text-white hover:bg-green-700 flex items-center"
+            >
+              <FaFileExport className="mr-2" /> Export Data
+            </Link>
+            <Link
+              href="/genealogy/interactive"
+              className="px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700 flex items-center"
+            >
+              <FaEdit className="mr-2" /> Interactive Tree
+            </Link>
+            <Link
+              href="/genealogy/virtualized"
+              className="px-4 py-2 rounded-md bg-teal-600 text-white hover:bg-teal-700 flex items-center"
+            >
+              <FaLayerGroup className="mr-2" /> Virtualized Tree
+            </Link>
+            <Link
+              href="/genealogy/mobile"
+              className="px-4 py-2 rounded-md bg-orange-600 text-white hover:bg-orange-700 flex items-center"
+            >
+              <FaMobile className="mr-2" /> Mobile View
+            </Link>
+            <Link
+              href="/genealogy/integration"
+              className="px-4 py-2 rounded-md bg-pink-600 text-white hover:bg-pink-700 flex items-center"
+            >
+              <FaPlug className="mr-2" /> Integration
+            </Link>
+            <Link
+              href="/genealogy/metrics"
+              className="px-4 py-2 rounded-md bg-cyan-600 text-white hover:bg-cyan-700 flex items-center"
+            >
+              <FaChartLine className="mr-2" /> Metrics
+            </Link>
+            <Link
+              href="/genealogy/notifications"
+              className="px-4 py-2 rounded-md bg-amber-600 text-white hover:bg-amber-700 flex items-center"
+            >
+              <FaBell className="mr-2" /> Notifications
+            </Link>
+            <Link
+              href="/genealogy/compare-users"
+              className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 flex items-center"
+            >
+              <FaExchangeAlt className="mr-2" /> Compare Users
+            </Link>
           </div>
         </div>
 

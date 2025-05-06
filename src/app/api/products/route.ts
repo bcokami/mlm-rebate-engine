@@ -3,6 +3,62 @@ import { NextRequest, NextResponse } from "next/server";
 import { productSchema, validate } from "@/lib/validation";
 import { productCache } from "@/lib/cache";
 
+/**
+ * Featured products list
+ *
+ * This includes the Biogen Extreme, Veggie Coffee, and Shield Soap products
+ */
+export const featuredProducts = [
+  {
+    id: 1,
+    name: "Biogen Extreme Concentrate",
+    description: "Concentrated organic enzyme formula that helps maintain pH balance and oxygenate cells.",
+    price: 1250,
+    salePrice: 1100,
+    image: "/images/products/biogen-extreme/biogen-extreme-main.jpg",
+    category: "Health Supplements",
+    pointValue: 50,
+    stock: 100,
+    featured: true,
+  },
+  {
+    id: 2,
+    name: "Veggie Coffee 124 in 1",
+    description: "A caffeine-free coffee alternative with 124 natural ingredients that support detoxification, health maintenance, and weight management.",
+    price: 980,
+    salePrice: 850,
+    image: "/images/products/veggie-coffee/veggie-coffee-main.jpg",
+    category: "Health Supplements",
+    pointValue: 40,
+    stock: 150,
+    featured: true,
+  },
+  {
+    id: 3,
+    name: "Biogen Shield Herbal Care Soap",
+    description: "A premium herbal soap that whitens, renews, and nourishes skin while providing anti-bacterial protection and deodorizing benefits.",
+    price: 120,
+    salePrice: 99,
+    image: "/images/products/shield-soap/shield-soap-main.jpg",
+    category: "Personal Care",
+    pointValue: 10,
+    stock: 200,
+    featured: true,
+  },
+  {
+    id: 4,
+    name: "Immune Support Complex",
+    description: "Powerful blend of vitamins, minerals, and herbs to support immune system function.",
+    price: 980,
+    salePrice: 850,
+    image: "/images/products/immune-support.jpg",
+    category: "Health Supplements",
+    pointValue: 40,
+    stock: 75,
+    featured: true,
+  }
+];
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
