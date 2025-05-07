@@ -13,11 +13,13 @@ export const featuredProducts = [
     id: 1,
     name: "Biogen Extreme Concentrate",
     description: "Concentrated organic enzyme formula that helps maintain pH balance and oxygenate cells.",
-    price: 1250,
-    salePrice: 1100,
+    price: 1100,     // Member price
+    srp: 1250,       // Suggested Retail Price for non-members
+    salePrice: 1100, // Current sale price (same as member price)
     image: "/images/products/biogen-extreme/biogen-extreme-main.jpg",
     category: "Health Supplements",
     pointValue: 50,
+    pv: 50,
     stock: 100,
     featured: true,
   },
@@ -25,11 +27,13 @@ export const featuredProducts = [
     id: 2,
     name: "Veggie Coffee 124 in 1",
     description: "A caffeine-free coffee alternative with 124 natural ingredients that support detoxification, health maintenance, and weight management.",
-    price: 980,
-    salePrice: 850,
+    price: 850,      // Member price
+    srp: 980,        // Suggested Retail Price for non-members
+    salePrice: 850,  // Current sale price (same as member price)
     image: "/images/products/veggie-coffee/veggie-coffee-main.jpg",
     category: "Health Supplements",
     pointValue: 40,
+    pv: 40,
     stock: 150,
     featured: true,
   },
@@ -37,11 +41,13 @@ export const featuredProducts = [
     id: 3,
     name: "Biogen Shield Herbal Care Soap",
     description: "A premium herbal soap that whitens, renews, and nourishes skin while providing anti-bacterial protection and deodorizing benefits.",
-    price: 120,
-    salePrice: 99,
+    price: 99,       // Member price
+    srp: 120,        // Suggested Retail Price for non-members
+    salePrice: 99,   // Current sale price (same as member price)
     image: "/images/products/shield-soap/shield-soap-main.jpg",
     category: "Personal Care",
     pointValue: 10,
+    pv: 10,
     stock: 200,
     featured: true,
   },
@@ -49,11 +55,13 @@ export const featuredProducts = [
     id: 4,
     name: "Immune Support Complex",
     description: "Powerful blend of vitamins, minerals, and herbs to support immune system function.",
-    price: 980,
-    salePrice: 850,
+    price: 850,      // Member price
+    srp: 980,        // Suggested Retail Price for non-members
+    salePrice: 850,  // Current sale price (same as member price)
     image: "/images/products/immune-support.jpg",
     category: "Health Supplements",
     pointValue: 40,
+    pv: 40,
     stock: 75,
     featured: true,
   }
@@ -67,6 +75,8 @@ export async function POST(request: NextRequest) {
     const validation = validate(productSchema, {
       ...body,
       price: parseFloat(body.price),
+      srp: parseFloat(body.srp || body.price), // Default SRP to price if not provided
+      pv: parseFloat(body.pv || "0"),         // Default PV to 0 if not provided
       rebateConfigs: body.rebateConfigs?.map((config: any) => ({
         level: parseInt(config.level),
         percentage: parseFloat(config.percentage),
@@ -80,7 +90,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, description, price, image, rebateConfigs } = validation.data!;
+    const { name, description, price, srp, pv, image, rebateConfigs } = validation.data!;
 
     // Create the product with rebate configs in a transaction
     const product = await prisma.$transaction(async (tx) => {
@@ -90,6 +100,8 @@ export async function POST(request: NextRequest) {
           name,
           description,
           price,
+          srp,
+          pv,
           image,
         },
       });

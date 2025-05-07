@@ -328,6 +328,15 @@ export default function AdminDashboardPage() {
             iconBgColor="bg-orange-100"
             iconColor="text-orange-500"
           />
+
+          <QuickAccessCard
+            title="Test Data Generator"
+            description="Generate test data for different user scenarios."
+            icon={<FaClipboardList className="h-6 w-6" />}
+            href="/admin/test-data"
+            iconBgColor="bg-indigo-100"
+            iconColor="text-indigo-500"
+          />
         </div>
       </div>
     </MainLayout>

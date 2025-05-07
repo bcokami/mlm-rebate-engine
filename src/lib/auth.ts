@@ -2,9 +2,32 @@ import { PrismaClient } from "@prisma/client";
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 // Initialize Prisma client
 const prisma = new PrismaClient();
+
+// Hash password using bcrypt
+export async function hashPassword(password: string): Promise<string> {
+  return await bcrypt.hash(password, 10);
+}
+
+// Compare password with hash
+export async function comparePassword(password: string, hashedPassword: string): Promise<boolean> {
+  return await bcrypt.compare(password, hashedPassword);
+}
+
+// Generate a random token for password reset
+export function generateResetToken(): { token: string; expiresAt: Date } {
+  // Generate a random token
+  const token = crypto.randomBytes(32).toString("hex");
+
+  // Set expiration to 1 hour from now
+  const expiresAt = new Date();
+  expiresAt.setHours(expiresAt.getHours() + 1);
+
+  return { token, expiresAt };
+}
 
 export const authOptions: NextAuthOptions = {
   debug: true, // Enable debug mode for troubleshooting

@@ -5,7 +5,18 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import MainLayout from "@/components/layout/MainLayout";
-import { FaUsers, FaShoppingCart, FaWallet, FaChartLine, FaLeaf, FaPhoneAlt, FaEnvelope, FaMapMarkerAlt } from "react-icons/fa";
+import { FaUsers, FaShoppingCart, FaWallet, FaChartLine, FaLeaf, FaPhoneAlt, FaEnvelope, FaMapMarkerAlt, FaBell } from "react-icons/fa";
+
+// Import dashboard components
+import DashboardCharts from "@/components/dashboard/DashboardCharts";
+import GenealogyPreview from "@/components/dashboard/GenealogyPreview";
+import PerformanceSummary from "@/components/dashboard/PerformanceSummary";
+import UpcomingEvents from "@/components/dashboard/UpcomingEvents";
+
+// Import new link and product generation widgets
+import QuickShareWidget from "@/components/dashboard/QuickShareWidget";
+import TopProductsWidget from "@/components/dashboard/TopProductsWidget";
+import RecentReferralsWidget from "@/components/dashboard/RecentReferralsWidget";
 
 interface DashboardStats {
   walletBalance: number;
@@ -116,14 +127,54 @@ export default function DashboardPage() {
     );
   }
 
+  // Sample data for genealogy preview
+  const currentUser = {
+    id: "current-user",
+    name: session?.user?.name || "Current User",
+    rank: "Gold",
+    image: session?.user?.image || undefined
+  };
+
+  const sampleDownlineMembers = [
+    {
+      id: "user1",
+      name: "Maria Santos",
+      rank: "Silver",
+      position: "left"
+    },
+    {
+      id: "user2",
+      name: "Juan Dela Cruz",
+      rank: "Distributor",
+      position: "right"
+    },
+    {
+      id: "user3",
+      name: "Angelica Reyes",
+      rank: "Distributor",
+      position: "left"
+    }
+  ];
+
   return (
     <MainLayout>
       <div>
-        <h1 className="text-2xl font-semibold mb-6">Dashboard</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-semibold">Dashboard</h1>
+
+          <div className="flex items-center">
+            <button className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none">
+              <FaBell className="h-6 w-6" />
+              <span className="absolute top-0 right-0 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center text-xs text-white">
+                3
+              </span>
+            </button>
+          </div>
+        </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow-md p-6 transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-blue-100 text-blue-500 mr-4">
                 <FaWallet className="h-6 w-6" />
@@ -137,7 +188,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow-md p-6 transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-green-100 text-green-500 mr-4">
                 <FaChartLine className="h-6 w-6" />
@@ -151,7 +202,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow-md p-6 transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-purple-100 text-purple-500 mr-4">
                 <FaUsers className="h-6 w-6" />
@@ -165,7 +216,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow-md p-6 transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-orange-100 text-orange-500 mr-4">
                 <FaShoppingCart className="h-6 w-6" />
@@ -180,74 +231,114 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Recent Rebates */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="px-6 py-4 border-b">
-            <h2 className="text-lg font-semibold">Recent Rebates</h2>
+        {/* Performance Summary */}
+        <div className="mb-8">
+          <PerformanceSummary metrics={[]} />
+        </div>
+
+        {/* Charts */}
+        <div className="mb-8">
+          <DashboardCharts />
+        </div>
+
+        {/* Link Generation and Referrals Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          {/* Quick Share Widget - 1/3 width */}
+          <div>
+            <QuickShareWidget />
           </div>
-          <div className="p-6">
-            {recentRebates.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead>
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        From
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Amount
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {recentRebates.map((rebate) => (
-                      <tr key={rebate.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(rebate.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {rebate.generator.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                          ₱{rebate.amount.toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="text-gray-500">No rebates received yet.</p>
-            )}
+
+          {/* Top Products Widget - 1/3 width */}
+          <div>
+            <TopProductsWidget />
+          </div>
+
+          {/* Recent Referrals Widget - 1/3 width */}
+          <div>
+            <RecentReferralsWidget />
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="px-6 py-4 border-b">
-            <h2 className="text-lg font-semibold">Quick Actions</h2>
+        {/* Two Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          {/* Genealogy Preview - 2/3 width */}
+          <div className="lg:col-span-2">
+            <GenealogyPreview
+              currentUser={currentUser}
+              downlineMembers={sampleDownlineMembers}
+            />
           </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+
+          {/* Recent Rebates - 1/3 width */}
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="px-4 py-3 bg-gray-50 border-b">
+              <h3 className="font-medium text-gray-700">Recent Rebates</h3>
+            </div>
+            <div className="p-4">
+              {recentRebates.length > 0 ? (
+                <div className="divide-y divide-gray-200">
+                  {recentRebates.map((rebate) => (
+                    <div key={rebate.id} className="py-3 flex justify-between items-center">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{rebate.generator.name}</p>
+                        <p className="text-xs text-gray-500">{new Date(rebate.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="text-sm font-medium text-green-600">
+                        +₱{rebate.amount.toFixed(2)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">No rebates received yet.</p>
+              )}
+
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => router.push("/rebates")}
+                  className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                >
+                  View All Rebates
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Upcoming Events */}
+        <div className="mb-8">
+          <UpcomingEvents />
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white rounded-lg shadow-md mb-8">
+          <div className="px-4 py-3 bg-gray-50 border-b">
+            <h3 className="font-medium text-gray-700">Quick Actions</h3>
+          </div>
+          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <button
               onClick={() => router.push("/shop")}
-              className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+              className="flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
             >
               <FaShoppingCart className="mr-2" /> Shop Products
             </button>
             <button
               onClick={() => router.push("/genealogy")}
-              className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+              className="flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors"
             >
               <FaUsers className="mr-2" /> View Genealogy
             </button>
             <button
               onClick={() => router.push("/wallet")}
-              className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700"
+              className="flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 transition-colors"
             >
               <FaWallet className="mr-2" /> Manage Wallet
+            </button>
+            <button
+              onClick={() => router.push("/referrals")}
+              className="flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 transition-colors"
+            >
+              <FaUsers className="mr-2" /> Invite Members
             </button>
           </div>
         </div>
@@ -255,15 +346,15 @@ export default function DashboardPage() {
         {/* Company Information */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* About Extreme Life */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b">
-              <h2 className="text-lg font-semibold flex items-center">
+          <div className="bg-white rounded-lg shadow-md">
+            <div className="px-4 py-3 bg-gray-50 border-b">
+              <h3 className="font-medium text-gray-700 flex items-center">
                 <FaLeaf className="text-green-500 mr-2" /> About Extreme Life Herbal
-              </h2>
+              </h3>
             </div>
             <div className="p-6">
               <div className="flex justify-center mb-4">
-                <div className="relative w-32 h-32">
+                <div className="relative w-24 h-24">
                   <Image
                     src="/images/20250503.svg"
                     alt="Extreme Life Herbal Products Logo"
@@ -272,24 +363,29 @@ export default function DashboardPage() {
                   />
                 </div>
               </div>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 text-sm mb-4">
                 Extreme Life Herbal Products Trading is a leading provider of high-quality herbal supplements and wellness products in the Philippines.
               </p>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 text-sm mb-4">
                 Our mission is to promote health and wellness through natural products while providing business opportunities for our distributors.
               </p>
-              <p className="text-gray-600 font-medium">
-                Welcome to our Herbal Product Rewards program!
-              </p>
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => router.push("/about")}
+                  className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                >
+                  Learn More
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Featured Products */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b">
-              <h2 className="text-lg font-semibold flex items-center">
+          <div className="bg-white rounded-lg shadow-md">
+            <div className="px-4 py-3 bg-gray-50 border-b">
+              <h3 className="font-medium text-gray-700 flex items-center">
                 <FaShoppingCart className="text-green-500 mr-2" /> Featured Products
-              </h2>
+              </h3>
             </div>
             <div className="p-6">
               <ul className="space-y-3">
@@ -298,8 +394,8 @@ export default function DashboardPage() {
                     <FaLeaf />
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-900">Premium Moringa Capsules</p>
-                    <p className="text-xs text-gray-500">Boost your immune system naturally</p>
+                    <p className="text-sm font-medium text-gray-900">Biogen Extreme Concentrate</p>
+                    <p className="text-xs text-gray-500">Concentrated organic enzyme formula</p>
                   </div>
                 </li>
                 <li className="flex items-start">
@@ -307,8 +403,8 @@ export default function DashboardPage() {
                     <FaLeaf />
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-900">Sambong-Banaba Tea</p>
-                    <p className="text-xs text-gray-500">Natural support for kidney health</p>
+                    <p className="text-sm font-medium text-gray-900">Veggie Coffee 124 in 1</p>
+                    <p className="text-xs text-gray-500">Caffeine-free coffee alternative</p>
                   </div>
                 </li>
                 <li className="flex items-start">
@@ -316,15 +412,15 @@ export default function DashboardPage() {
                     <FaLeaf />
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-900">Mangosteen Extract</p>
-                    <p className="text-xs text-gray-500">Powerful antioxidant supplement</p>
+                    <p className="text-sm font-medium text-gray-900">Shield Herbal Care Soap</p>
+                    <p className="text-xs text-gray-500">Premium herbal soap for skin care</p>
                   </div>
                 </li>
               </ul>
-              <div className="mt-4">
+              <div className="mt-4 text-center">
                 <button
                   onClick={() => router.push("/shop")}
-                  className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-800"
                 >
                   View All Products
                 </button>
@@ -333,11 +429,11 @@ export default function DashboardPage() {
           </div>
 
           {/* Contact Information */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b">
-              <h2 className="text-lg font-semibold flex items-center">
+          <div className="bg-white rounded-lg shadow-md">
+            <div className="px-4 py-3 bg-gray-50 border-b">
+              <h3 className="font-medium text-gray-700 flex items-center">
                 <FaPhoneAlt className="text-green-500 mr-2" /> Contact Us
-              </h2>
+              </h3>
             </div>
             <div className="p-6">
               <ul className="space-y-4">
@@ -356,7 +452,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="ml-3">
                     <p className="text-sm font-medium text-gray-900">Email</p>
-                    <p className="text-sm text-gray-500">info@extremelifeherbal.com</p>
+                    <p className="text-sm text-gray-500">info@extremelifeherbal.ph</p>
                   </div>
                 </li>
                 <li className="flex items-start">
@@ -369,12 +465,12 @@ export default function DashboardPage() {
                   </div>
                 </li>
               </ul>
-              <div className="mt-4">
+              <div className="mt-4 text-center">
                 <button
-                  onClick={() => router.push("/about")}
-                  className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                  onClick={() => router.push("/contact")}
+                  className="text-sm font-medium text-blue-600 hover:text-blue-800"
                 >
-                  Learn More
+                  Contact Us
                 </button>
               </div>
             </div>

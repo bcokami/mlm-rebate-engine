@@ -17,6 +17,7 @@ import {
   FaCalendarAlt,
   FaLink
 } from 'react-icons/fa';
+import CartButton from '@/components/cart/CartButton';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -151,6 +152,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <div className="flex items-center">
                 {session ? (
                   <div className="flex items-center">
+                    <CartButton />
+                    <div className="mx-4 h-6 border-l border-gray-300"></div>
                     <Link href="/profile" className="flex items-center mr-4 hover:text-blue-600">
                       <FaUser className="mr-2" />
                       <span>{session.user?.name || session.user?.email}</span>

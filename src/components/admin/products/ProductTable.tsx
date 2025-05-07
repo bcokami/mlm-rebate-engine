@@ -2,25 +2,29 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { 
-  FaEdit, 
-  FaTrash, 
-  FaClone, 
-  FaToggleOn, 
-  FaToggleOff, 
-  FaChevronUp, 
+import {
+  FaEdit,
+  FaTrash,
+  FaClone,
+  FaToggleOn,
+  FaToggleOff,
+  FaChevronUp,
   FaChevronDown,
   FaSort,
   FaSortUp,
   FaSortDown,
   FaSpinner,
   FaEye,
-  FaCheck
+  FaCheck,
+  FaBoxOpen,
+  FaExclamationTriangle,
+  FaTimes
 } from "react-icons/fa";
 import ProductCloneModal from "./ProductCloneModal";
 import ProductEditModal from "./ProductEditModal";
 import ProductDetailsModal from "./ProductDetailsModal";
 import ProductRebateSimulatorModal from "./ProductRebateSimulatorModal";
+import InventoryManagementModal from "./InventoryManagementModal";
 
 interface Product {
   id: number;
@@ -31,6 +35,7 @@ interface Product {
   pv: number;
   binaryValue: number;
   inventory: number;
+  lowStockThreshold?: number | null;
   tags: string | null;
   image: string | null;
   isActive: boolean;
@@ -89,52 +94,58 @@ export default function ProductTable({
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showRebateSimulator, setShowRebateSimulator] = useState(false);
+  const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
-  
+
   const handleSort = (field: string) => {
     onSort(field);
   };
-  
+
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     onSelectAll(e.target.checked);
   };
-  
+
   const handleSelectProduct = (e: React.ChangeEvent<HTMLInputElement>, productId: number) => {
     onSelectProduct(productId, e.target.checked);
   };
-  
+
   const handleCloneClick = (product: Product) => {
     setCurrentProduct(product);
     setShowCloneModal(true);
   };
-  
+
   const handleEditClick = (product: Product) => {
     setCurrentProduct(product);
     setShowEditModal(true);
   };
-  
+
   const handleDetailsClick = (product: Product) => {
     setCurrentProduct(product);
     setShowDetailsModal(true);
   };
-  
+
   const handleRebateSimulatorClick = (product: Product) => {
     setCurrentProduct(product);
     setShowRebateSimulator(true);
   };
-  
+
+  const handleInventoryClick = (product: Product) => {
+    setCurrentProduct(product);
+    setShowInventoryModal(true);
+  };
+
   const handleToggleExpand = (productId: number) => {
     setExpandedProduct(expandedProduct === productId ? null : productId);
   };
-  
+
   const renderSortIcon = (field: string) => {
     if (sortBy !== field) {
       return <FaSort className="ml-1" />;
     }
-    
+
     return sortOrder === "asc" ? <FaSortUp className="ml-1" /> : <FaSortDown className="ml-1" />;
   };
-  
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-PH', {
       style: 'currency',
@@ -142,25 +153,25 @@ export default function ProductTable({
       minimumFractionDigits: 2,
     }).format(amount);
   };
-  
+
   const renderPagination = () => {
     const { page, totalPages } = pagination;
-    
+
     // Generate page numbers
     const pageNumbers = [];
     const maxPageButtons = 5;
-    
+
     let startPage = Math.max(1, page - Math.floor(maxPageButtons / 2));
     let endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
-    
+
     if (endPage - startPage + 1 < maxPageButtons) {
       startPage = Math.max(1, endPage - maxPageButtons + 1);
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
       pageNumbers.push(i);
     }
-    
+
     return (
       <div className="flex items-center justify-between mt-4">
         <div>
@@ -175,14 +186,14 @@ export default function ProductTable({
             <option value="100">100 per page</option>
           </select>
         </div>
-        
+
         <div className="flex items-center">
           <span className="text-sm text-gray-700 mr-4">
             Showing {(page - 1) * pagination.pageSize + 1} to{" "}
             {Math.min(page * pagination.pageSize, pagination.totalCount)} of{" "}
             {pagination.totalCount} products
           </span>
-          
+
           <nav className="flex space-x-1">
             <button
               onClick={() => onPageChange(1)}
@@ -198,7 +209,7 @@ export default function ProductTable({
             >
               Prev
             </button>
-            
+
             {pageNumbers.map((pageNum) => (
               <button
                 key={pageNum}
@@ -212,7 +223,7 @@ export default function ProductTable({
                 {pageNum}
               </button>
             ))}
-            
+
             <button
               onClick={() => onPageChange(page + 1)}
               disabled={page === totalPages}
@@ -232,7 +243,7 @@ export default function ProductTable({
       </div>
     );
   };
-  
+
   if (loading) {
     return (
       <div className="p-6 flex justify-center items-center">
@@ -241,7 +252,7 @@ export default function ProductTable({
       </div>
     );
   }
-  
+
   if (products.length === 0) {
     return (
       <div className="p-6 text-center">
@@ -249,7 +260,7 @@ export default function ProductTable({
       </div>
     );
   }
-  
+
   return (
     <div>
       <div className="overflow-x-auto">
@@ -389,8 +400,35 @@ export default function ProductTable({
                 <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
                   {product.binaryValue}
                 </td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {product.inventory}
+                <td className="px-3 py-4 whitespace-nowrap text-sm">
+                  <div className="flex items-center">
+                    <span className={`${
+                      product.lowStockThreshold !== null &&
+                      product.lowStockThreshold !== undefined &&
+                      product.inventory <= product.lowStockThreshold
+                        ? "text-red-600 font-medium"
+                        : "text-gray-500"
+                    }`}>
+                      {product.inventory}
+                    </span>
+
+                    {product.lowStockThreshold !== null &&
+                     product.lowStockThreshold !== undefined &&
+                     product.inventory <= product.lowStockThreshold && (
+                      <FaExclamationTriangle className="ml-2 text-amber-500" title="Low stock" />
+                    )}
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleInventoryClick(product);
+                      }}
+                      className="ml-2 text-blue-600 hover:text-blue-800"
+                      title="Manage Inventory"
+                    >
+                      <FaBoxOpen />
+                    </button>
+                  </div>
                 </td>
                 <td className="px-3 py-4 whitespace-nowrap">
                   <span
@@ -453,7 +491,7 @@ export default function ProductTable({
                       <FaTrash />
                     </button>
                   </div>
-                  
+
                   {expandedProduct === product.id && (
                     <div className="mt-2">
                       <button
@@ -470,9 +508,9 @@ export default function ProductTable({
           </tbody>
         </table>
       </div>
-      
+
       {renderPagination()}
-      
+
       {/* Modals */}
       {showCloneModal && currentProduct && (
         <ProductCloneModal
@@ -481,7 +519,7 @@ export default function ProductTable({
           onClone={onCloneProduct}
         />
       )}
-      
+
       {showEditModal && currentProduct && (
         <ProductEditModal
           product={currentProduct}
@@ -489,7 +527,7 @@ export default function ProductTable({
           onUpdate={onUpdateProduct}
         />
       )}
-      
+
       {showDetailsModal && currentProduct && (
         <ProductDetailsModal
           product={currentProduct}
@@ -500,11 +538,19 @@ export default function ProductTable({
           }}
         />
       )}
-      
+
       {showRebateSimulator && currentProduct && (
         <ProductRebateSimulatorModal
           product={currentProduct}
           onClose={() => setShowRebateSimulator(false)}
+        />
+      )}
+
+      {showInventoryModal && currentProduct && (
+        <InventoryManagementModal
+          product={currentProduct}
+          onClose={() => setShowInventoryModal(false)}
+          onUpdate={onUpdateProduct}
         />
       )}
     </div>

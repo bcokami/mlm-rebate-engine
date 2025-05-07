@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
+import RankBenefits from "@/components/rank/RankBenefits";
 import {
   FaTrophy,
   FaChartLine,
@@ -14,7 +15,8 @@ import {
   FaCheck,
   FaTimes,
   FaHistory,
-  FaMedal
+  FaMedal,
+  FaInfoCircle
 } from "react-icons/fa";
 
 interface RankRequirement {
@@ -242,7 +244,7 @@ export default function RankAdvancementPage() {
                   <div className="flex justify-between text-sm mb-1">
                     <span>Progress</span>
                     <span>
-                      ₱{eligibility.requirements.personalSales.actual.toLocaleString()} / 
+                      ₱{eligibility.requirements.personalSales.actual.toLocaleString()} /
                       ₱{eligibility.requirements.personalSales.required.toLocaleString()}
                     </span>
                   </div>
@@ -279,7 +281,7 @@ export default function RankAdvancementPage() {
                   <div className="flex justify-between text-sm mb-1">
                     <span>Progress</span>
                     <span>
-                      ₱{eligibility.requirements.groupSales.actual.toLocaleString()} / 
+                      ₱{eligibility.requirements.groupSales.actual.toLocaleString()} /
                       ₱{eligibility.requirements.groupSales.required.toLocaleString()}
                     </span>
                   </div>
@@ -316,7 +318,7 @@ export default function RankAdvancementPage() {
                   <div className="flex justify-between text-sm mb-1">
                     <span>Progress</span>
                     <span>
-                      {eligibility.requirements.directDownline.actual} / 
+                      {eligibility.requirements.directDownline.actual} /
                       {eligibility.requirements.directDownline.required}
                     </span>
                   </div>
@@ -354,7 +356,7 @@ export default function RankAdvancementPage() {
                     <div className="flex justify-between text-sm mb-1">
                       <span>Progress</span>
                       <span>
-                        {eligibility.requirements.qualifiedDownline.actual} / 
+                        {eligibility.requirements.qualifiedDownline.actual} /
                         {eligibility.requirements.qualifiedDownline.required}
                       </span>
                     </div>
@@ -462,6 +464,23 @@ export default function RankAdvancementPage() {
           </div>
         )}
 
+        {/* Rank Benefits */}
+        <div className="mb-8">
+          <div className="flex items-center mb-4">
+            <h2 className="text-lg font-semibold flex items-center">
+              <FaInfoCircle className="mr-2 text-blue-500" /> Rank Benefits
+            </h2>
+            <div className="ml-2 text-sm text-gray-500">
+              Learn about the benefits of each rank
+            </div>
+          </div>
+
+          <RankBenefits
+            ranks={[]}
+            currentRankId={eligibility?.currentRank?.id}
+          />
+        </div>
+
         {/* Rank Advancement History */}
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b flex justify-between items-center">
@@ -475,7 +494,7 @@ export default function RankAdvancementPage() {
               {showHistory ? "Hide" : "Show"}
             </button>
           </div>
-          
+
           {showHistory && (
             <div className="p-6">
               {history.length > 0 ? (

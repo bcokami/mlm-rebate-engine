@@ -8,6 +8,7 @@ import {
   FaCog, FaUsersCog, FaPercentage, FaClipboardList, FaChevronLeft,
   FaChevronRight, FaSignOutAlt, FaUserCircle, FaBars, FaTimes
 } from 'react-icons/fa';
+import NotificationDropdown from '@/components/admin/notifications/NotificationDropdown';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -27,6 +28,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: 'Rebate Configurations', href: '/admin/rebate-configs', icon: <FaPercentage /> },
     { name: 'Reports', href: '/admin/reports', icon: <FaChartLine /> },
     { name: 'Test Users', href: '/admin/test-users', icon: <FaUsersCog /> },
+    { name: 'Test Data', href: '/admin/test-data', icon: <FaClipboardList /> },
     { name: 'Settings', href: '/admin/settings', icon: <FaCog /> },
   ];
 
@@ -213,6 +215,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               <div className="flex items-center">
                 {session ? (
                   <div className="flex items-center">
+                    <div className="mr-4">
+                      <NotificationDropdown />
+                    </div>
                     <div className="hidden md:flex items-center mr-4 text-sm text-gray-700">
                       <FaUserCircle className="mr-2" />
                       <span>{session.user?.name || session.user?.email}</span>
