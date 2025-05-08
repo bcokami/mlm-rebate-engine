@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from 'react';
-import Image from 'next/image';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { FaShoppingCart, FaCheck } from 'react-icons/fa';
 import { useCart } from '@/contexts/CartContext';
+import OptimizedImage from '@/components/common/OptimizedImage';
 
 interface ProductCardProps {
   product: {
@@ -23,11 +23,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { data: session } = useSession();
   const { addItem } = useCart();
   const [addedToCart, setAddedToCart] = useState(false);
-  
+
   const formatCurrency = (amount: number) => {
     return `₱${amount.toFixed(2)}`;
   };
-  
+
   const handleAddToCart = () => {
     addItem({
       id: product.id,
@@ -38,38 +38,47 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       quantity: 1,
       pv: product.pv
     });
-    
+
     setAddedToCart(true);
-    
+
     // Reset added to cart status after 3 seconds
     setTimeout(() => {
       setAddedToCart(false);
     }, 3000);
   };
-  
+
+  // Memoize calculations to avoid recalculating on every render
   const isMember = !!session?.user;
-  const displayPrice = isMember ? product.price : product.srp;
-  const discount = product.srp - product.price;
-  const discountPercentage = Math.round((discount / product.srp) * 100);
-  
+
+  const { displayPrice, discount, discountPercentage } = useMemo(() => {
+    const displayPrice = isMember ? product.price : product.srp;
+    const discount = product.srp - product.price;
+    const discountPercentage = Math.round((discount / product.srp) * 100);
+
+    return { displayPrice, discount, discountPercentage };
+  }, [isMember, product.price, product.srp]);
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
       <Link href={`/shop/product/${product.id}`}>
         <div className="relative h-48 overflow-hidden">
           {product.image ? (
-            <Image
+            <OptimizedImage
               src={product.image}
               alt={product.name}
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className="object-cover hover:scale-105 transition-transform duration-300"
+              loadingColor="#f3f4f6"
+              fallbackSrc="/images/product-placeholder.jpg"
+              threshold={0.2}
             />
           ) : (
             <div className="h-full w-full bg-gray-200 flex items-center justify-center">
               <FaShoppingCart className="text-gray-400 h-8 w-8" />
             </div>
           )}
-          
+
           {isMember && discount > 0 && (
             <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
               {discountPercentage}% OFF
@@ -77,36 +86,36 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           )}
         </div>
       </Link>
-      
+
       <div className="p-4">
         <Link href={`/shop/product/${product.id}`}>
           <h3 className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors duration-200 mb-1 line-clamp-2">
             {product.name}
           </h3>
         </Link>
-        
+
         <p className="text-sm text-gray-500 mb-3 line-clamp-2">
           {product.description}
         </p>
-        
+
         <div className="flex items-center justify-between mb-3">
           <div>
             <div className="text-lg font-bold text-green-600">
               {formatCurrency(displayPrice)}
             </div>
-            
+
             {isMember && discount > 0 && (
               <div className="text-sm text-gray-500 line-through">
                 {formatCurrency(product.srp)}
               </div>
             )}
           </div>
-          
+
           <div className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">
             {product.pv} PV
           </div>
         </div>
-        
+
         {!isMember && (
           <div className="text-xs text-blue-600 mb-3">
             <Link href="/login" className="hover:underline">
@@ -115,7 +124,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             {" "}for discounted prices!
           </div>
         )}
-        
+
         <button
           type="button"
           onClick={handleAddToCart}

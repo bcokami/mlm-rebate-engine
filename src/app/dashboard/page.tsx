@@ -1,28 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense, lazy } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useQuery } from "@tanstack/react-query";
 import MainLayout from "@/components/layout/MainLayout";
 import { FaUsers, FaShoppingCart, FaWallet, FaChartLine, FaLeaf, FaPhoneAlt, FaEnvelope, FaMapMarkerAlt, FaBell } from "react-icons/fa";
 
-// Import dashboard components
-import DashboardCharts from "@/components/dashboard/DashboardCharts";
-import GenealogyPreview from "@/components/dashboard/GenealogyPreview";
-import PerformanceSummary from "@/components/dashboard/PerformanceSummary";
-import UpcomingEvents from "@/components/dashboard/UpcomingEvents";
+// Import dashboard components with lazy loading
+const DashboardCharts = lazy(() => import("@/components/dashboard/DashboardCharts"));
+const GenealogyPreview = lazy(() => import("@/components/dashboard/GenealogyPreview"));
+const PerformanceSummary = lazy(() => import("@/components/dashboard/PerformanceSummary"));
+const UpcomingEvents = lazy(() => import("@/components/dashboard/UpcomingEvents"));
 
-// Import new link and product generation widgets
-import QuickShareWidget from "@/components/dashboard/QuickShareWidget";
-import TopProductsWidget from "@/components/dashboard/TopProductsWidget";
-import RecentReferralsWidget from "@/components/dashboard/RecentReferralsWidget";
+// Import new link and product generation widgets with lazy loading
+const QuickShareWidget = lazy(() => import("@/components/dashboard/QuickShareWidget"));
+const TopProductsWidget = lazy(() => import("@/components/dashboard/TopProductsWidget"));
+const RecentReferralsWidget = lazy(() => import("@/components/dashboard/RecentReferralsWidget"));
+
+interface DashboardUser {
+  id: number;
+  name: string;
+  email: string;
+  rank: string;
+  rankLevel: number;
+  profileImage?: string;
+}
 
 interface DashboardStats {
   walletBalance: number;
   totalRebates: number;
   downlineCount: number;
   purchaseCount: number;
+}
+
+interface ChartData {
+  rebates: Record<string, number>;
+  sales: Record<string, number>;
+  rankDistribution: Record<string, number>;
 }
 
 interface RecentRebate {
@@ -34,90 +50,57 @@ interface RecentRebate {
   };
 }
 
+interface RecentPurchase {
+  id: number;
+  totalAmount: number;
+  createdAt: string;
+  product: {
+    name: string;
+  };
+}
+
+interface DashboardData {
+  user: DashboardUser;
+  stats: DashboardStats;
+  charts: ChartData;
+  recentData: {
+    rebates: RecentRebate[];
+    purchases: RecentPurchase[];
+  };
+}
+
+// Function to fetch dashboard data
+const fetchDashboardData = async (timeframe: string = 'month'): Promise<DashboardData> => {
+  const response = await fetch(`/api/dashboard?timeframe=${timeframe}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch dashboard data');
+  }
+  return response.json();
+};
+
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [stats, setStats] = useState<DashboardStats>({
-    walletBalance: 0,
-    totalRebates: 0,
-    downlineCount: 0,
-    purchaseCount: 0,
-  });
-  const [recentRebates, setRecentRebates] = useState<RecentRebate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [timeframe, setTimeframe] = useState<'week' | 'month' | 'year'>('month');
 
+  // Redirect if not authenticated
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
     }
   }, [status, router]);
 
-  useEffect(() => {
-    if (status === "authenticated") {
-      // Fetch dashboard data
-      const fetchDashboardData = async () => {
-        try {
-          // Fetch wallet balance
-          const walletResponse = await fetch("/api/wallet");
-          const walletData = await walletResponse.json();
+  // Use React Query to fetch dashboard data
+  const { data, isLoading, error } = useQuery<DashboardData>({
+    queryKey: ['dashboardData', timeframe],
+    queryFn: () => fetchDashboardData(timeframe),
+    enabled: status === 'authenticated',
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+  });
 
-          // Fetch rebates
-          const rebatesResponse = await fetch("/api/rebates");
-          const rebatesData = await rebatesResponse.json();
-          // Extract the rebates array from the response
-          const rebates = rebatesData.rebates || [];
-
-          // Fetch genealogy (for downline count)
-          const genealogyResponse = await fetch("/api/genealogy");
-          const genealogyData = await genealogyResponse.json();
-
-          // Fetch purchases
-          const purchasesResponse = await fetch("/api/purchases");
-          const purchasesData = await purchasesResponse.json();
-
-          // Calculate stats
-          const totalRebates = rebates.length > 0
-            ? rebates.reduce(
-                (sum: number, rebate: any) => sum + rebate.amount,
-                0
-              )
-            : 0;
-
-          const downlineCount = genealogyData.children
-            ? genealogyData.children.length
-            : 0;
-
-          setStats({
-            walletBalance: walletData.balance || 0,
-            totalRebates,
-            downlineCount,
-            purchaseCount: purchasesData.length || 0,
-          });
-
-          // Get recent rebates
-          const sortedRebates = rebates.length > 0
-            ? [...rebates]
-                .sort(
-                  (a, b) =>
-                    new Date(b.createdAt).getTime() -
-                    new Date(a.createdAt).getTime()
-                )
-                .slice(0, 5)
-            : [];
-
-          setRecentRebates(sortedRebates);
-          setLoading(false);
-        } catch (error) {
-          console.error("Error fetching dashboard data:", error);
-          setLoading(false);
-        }
-      };
-
-      fetchDashboardData();
-    }
-  }, [status]);
-
-  if (status === "loading" || loading) {
+  // Loading state
+  if (status === "loading" || isLoading) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-64">
@@ -127,34 +110,37 @@ export default function DashboardPage() {
     );
   }
 
-  // Sample data for genealogy preview
+  // Error state
+  if (error) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-xl text-red-500">Error loading dashboard data</div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // Prepare data for genealogy preview
   const currentUser = {
-    id: "current-user",
-    name: session?.user?.name || "Current User",
-    rank: "Gold",
-    image: session?.user?.image || undefined
+    id: data?.user?.id.toString() || "current-user",
+    name: data?.user?.name || session?.user?.name || "Current User",
+    rank: data?.user?.rank || "Distributor",
+    image: data?.user?.profileImage || session?.user?.image || undefined
   };
 
-  const sampleDownlineMembers = [
-    {
-      id: "user1",
-      name: "Maria Santos",
-      rank: "Silver",
-      position: "left"
-    },
-    {
-      id: "user2",
-      name: "Juan Dela Cruz",
-      rank: "Distributor",
-      position: "right"
-    },
-    {
-      id: "user3",
-      name: "Angelica Reyes",
-      rank: "Distributor",
-      position: "left"
-    }
-  ];
+  // Convert downline data to the format expected by GenealogyPreview
+  const downlineMembers = data?.recentData?.rebates.slice(0, 3).map((rebate, index) => ({
+    id: `user${index + 1}`,
+    name: rebate.generator.name,
+    rank: "Distributor",
+    position: index % 2 === 0 ? "left" : "right" as "left" | "right"
+  })) || [];
+
+  // Handle timeframe change
+  const handleTimeframeChange = (newTimeframe: 'week' | 'month' | 'year') => {
+    setTimeframe(newTimeframe);
+  };
 
   return (
     <MainLayout>
@@ -162,7 +148,20 @@ export default function DashboardPage() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold">Dashboard</h1>
 
-          <div className="flex items-center">
+          <div className="flex items-center space-x-4">
+            {/* Timeframe selector */}
+            <div className="flex items-center bg-gray-100 rounded-md">
+              <select
+                value={timeframe}
+                onChange={(e) => handleTimeframeChange(e.target.value as 'week' | 'month' | 'year')}
+                className="bg-transparent border-none py-2 px-3 focus:ring-0 text-sm"
+              >
+                <option value="week">Last 7 Days</option>
+                <option value="month">This Month</option>
+                <option value="year">This Year</option>
+              </select>
+            </div>
+
             <button className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none">
               <FaBell className="h-6 w-6" />
               <span className="absolute top-0 right-0 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center text-xs text-white">
@@ -183,7 +182,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-500 font-medium">
                   Wallet Balance
                 </p>
-                <p className="text-2xl font-semibold">₱{stats.walletBalance.toFixed(2)}</p>
+                <p className="text-2xl font-semibold">₱{data?.stats.walletBalance.toFixed(2) || "0.00"}</p>
               </div>
             </div>
           </div>
@@ -197,7 +196,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-500 font-medium">
                   Total Rebates
                 </p>
-                <p className="text-2xl font-semibold">₱{stats.totalRebates.toFixed(2)}</p>
+                <p className="text-2xl font-semibold">₱{data?.stats.totalRebates.toFixed(2) || "0.00"}</p>
               </div>
             </div>
           </div>
@@ -211,7 +210,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-500 font-medium">
                   Downline Members
                 </p>
-                <p className="text-2xl font-semibold">{stats.downlineCount}</p>
+                <p className="text-2xl font-semibold">{data?.stats.downlineCount || 0}</p>
               </div>
             </div>
           </div>
@@ -225,49 +224,66 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-500 font-medium">
                   Total Purchases
                 </p>
-                <p className="text-2xl font-semibold">{stats.purchaseCount}</p>
+                <p className="text-2xl font-semibold">{data?.stats.purchaseCount || 0}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Performance Summary */}
-        <div className="mb-8">
-          <PerformanceSummary metrics={[]} />
-        </div>
+        <Suspense fallback={<div className="h-64 flex items-center justify-center">Loading performance summary...</div>}>
+          <div className="mb-8">
+            <PerformanceSummary metrics={[]} />
+          </div>
+        </Suspense>
 
         {/* Charts */}
-        <div className="mb-8">
-          <DashboardCharts />
-        </div>
+        <Suspense fallback={<div className="h-64 flex items-center justify-center">Loading charts...</div>}>
+          <div className="mb-8">
+            <DashboardCharts
+              rebateData={data?.charts.rebates ? Object.values(data.charts.rebates) : []}
+              salesData={data?.charts.sales ? Object.values(data.charts.sales) : []}
+              rankDistribution={data?.charts.rankDistribution || {}}
+              timeframe={timeframe}
+            />
+          </div>
+        </Suspense>
 
         {/* Link Generation and Referrals Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Quick Share Widget - 1/3 width */}
-          <div>
-            <QuickShareWidget />
-          </div>
+          <Suspense fallback={<div className="h-64 flex items-center justify-center">Loading widget...</div>}>
+            <div>
+              <QuickShareWidget />
+            </div>
+          </Suspense>
 
           {/* Top Products Widget - 1/3 width */}
-          <div>
-            <TopProductsWidget />
-          </div>
+          <Suspense fallback={<div className="h-64 flex items-center justify-center">Loading widget...</div>}>
+            <div>
+              <TopProductsWidget />
+            </div>
+          </Suspense>
 
           {/* Recent Referrals Widget - 1/3 width */}
-          <div>
-            <RecentReferralsWidget />
-          </div>
+          <Suspense fallback={<div className="h-64 flex items-center justify-center">Loading widget...</div>}>
+            <div>
+              <RecentReferralsWidget />
+            </div>
+          </Suspense>
         </div>
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Genealogy Preview - 2/3 width */}
-          <div className="lg:col-span-2">
-            <GenealogyPreview
-              currentUser={currentUser}
-              downlineMembers={sampleDownlineMembers}
-            />
-          </div>
+          <Suspense fallback={<div className="h-64 flex items-center justify-center">Loading genealogy...</div>}>
+            <div className="lg:col-span-2">
+              <GenealogyPreview
+                currentUser={currentUser}
+                downlineMembers={downlineMembers}
+              />
+            </div>
+          </Suspense>
 
           {/* Recent Rebates - 1/3 width */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -275,9 +291,9 @@ export default function DashboardPage() {
               <h3 className="font-medium text-gray-700">Recent Rebates</h3>
             </div>
             <div className="p-4">
-              {recentRebates.length > 0 ? (
+              {data?.recentData.rebates && data.recentData.rebates.length > 0 ? (
                 <div className="divide-y divide-gray-200">
-                  {recentRebates.map((rebate) => (
+                  {data.recentData.rebates.map((rebate) => (
                     <div key={rebate.id} className="py-3 flex justify-between items-center">
                       <div>
                         <p className="text-sm font-medium text-gray-900">{rebate.generator.name}</p>

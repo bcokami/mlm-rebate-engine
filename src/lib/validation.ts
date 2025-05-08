@@ -13,11 +13,44 @@ export const registerSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string().min(8, 'Confirm password must be at least 8 characters'),
   phone: z.string().optional(),
+  birthdate: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  region: z.string().optional(),
+  postalCode: z.string().optional(),
   uplineId: z.string().optional(),
   profileImage: z.string().optional(),
+  preferredPaymentMethod: z.string().optional(),
+  bankName: z.string().optional(),
+  bankAccountNumber: z.string().optional(),
+  bankAccountName: z.string().optional(),
+  gcashNumber: z.string().optional(),
+  payMayaNumber: z.string().optional(),
+  receiveUpdates: z.boolean().optional().default(false),
+  agreeToTerms: z.boolean(),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ['confirmPassword'],
+}).refine(data => data.agreeToTerms === true, {
+  message: "You must agree to the terms and conditions",
+  path: ['agreeToTerms'],
+}).refine(data => {
+  // If preferredPaymentMethod is bank, validate bank details
+  if (data.preferredPaymentMethod === 'bank') {
+    return !!data.bankName && !!data.bankAccountNumber && !!data.bankAccountName;
+  }
+  // If preferredPaymentMethod is gcash, validate gcash number
+  if (data.preferredPaymentMethod === 'gcash') {
+    return !!data.gcashNumber;
+  }
+  // If preferredPaymentMethod is paymaya, validate paymaya number
+  if (data.preferredPaymentMethod === 'paymaya') {
+    return !!data.payMayaNumber;
+  }
+  return true;
+}, {
+  message: "Payment details are required for the selected payment method",
+  path: ['preferredPaymentMethod'],
 });
 
 export const updateUserSchema = z.object({

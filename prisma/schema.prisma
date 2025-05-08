@@ -24,11 +24,19 @@ model User {
   password           String
   name               String
   phone              String?
+  birthdate          String?
+  address            String?
+  city               String?
+  region             String?
+  postalCode         String?
   rankId             Int                 @default(1)
   uplineId           Int?
   sponsorId          Int?                // For binary structure
   sponsorPosition    String?             // "left" or "right" for binary structure
   walletBalance      Float               @default(0)
+  preferredPaymentMethod String?         // "bank", "gcash", "paymaya"
+  paymentDetails     Json?               // Stores payment details based on preferred method
+  receiveUpdates     Boolean             @default(false)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   profileImage       String?
@@ -51,6 +59,14 @@ model User {
   wallet             Wallet?
   shareableLinks     ShareableLink[]
   notifications      Notification[]
+
+  @@index([uplineId])
+  @@index([sponsorId])
+  @@index([rankId])
+  @@index([createdAt])
+  @@index([isActive])
+  @@index([testData])
+  @@index([uplineId, rankId])
 }
 
 model Product {
@@ -110,6 +126,14 @@ model Purchase {
   rebates     Rebate[]
   orderId     Int?
   order       Order?   @relation(fields: [orderId], references: [id])
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([orderId])
+  @@index([testData])
+  @@index([userId, createdAt])
 }
 
 model Rebate {
@@ -129,6 +153,15 @@ model Rebate {
   generator   User      @relation("RebateGenerator", fields: [generatorId], references: [id])
   receiver    User      @relation("RebateReceiver", fields: [receiverId], references: [id])
   purchase    Purchase  @relation(fields: [purchaseId], references: [id])
+
+  @@index([purchaseId])
+  @@index([receiverId])
+  @@index([generatorId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([testData])
+  @@index([receiverId, status])
+  @@index([receiverId, createdAt])
 }
 
 model WalletTransaction {

@@ -30,29 +30,29 @@ const GuestCheckoutForm: React.FC<GuestCheckoutFormProps> = ({ onSubmit, onCance
     region: '',
     postalCode: '',
   });
-  
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // Clear error when field is changed
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
-  
+
   const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name } = e.target;
     setTouched(prev => ({ ...prev, [name]: true }));
     validateField(name, formData[name as keyof GuestData]);
   };
-  
+
   const validateField = (name: string, value: string) => {
     let error = '';
-    
+
     switch (name) {
       case 'name':
         if (!value.trim()) {
@@ -92,16 +92,16 @@ const GuestCheckoutForm: React.FC<GuestCheckoutFormProps> = ({ onSubmit, onCance
         }
         break;
     }
-    
+
     setErrors(prev => ({ ...prev, [name]: error }));
     return error;
   };
-  
+
   const validateForm = () => {
     const requiredFields = ['name', 'email', 'phone', 'addressLine1', 'city', 'region', 'postalCode'];
     let isValid = true;
     const newErrors: Record<string, string> = {};
-    
+
     requiredFields.forEach(field => {
       const error = validateField(field, formData[field as keyof GuestData]);
       if (error) {
@@ -109,26 +109,38 @@ const GuestCheckoutForm: React.FC<GuestCheckoutFormProps> = ({ onSubmit, onCance
         newErrors[field] = error;
       }
     });
-    
+
     setErrors(newErrors);
     return isValid;
   };
-  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       onSubmit(formData);
     }
   };
-  
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-lg font-medium text-gray-900 mb-4">Guest Checkout</h2>
+      <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
+        <h3 className="text-sm font-medium text-blue-800 mb-1">Member Benefits</h3>
+        <ul className="text-sm text-blue-700 list-disc pl-5 space-y-1">
+          <li>Discounted member prices (save up to 20%)</li>
+          <li>Earn rebates on every purchase</li>
+          <li>Access to exclusive products and promotions</li>
+          <li>Build your own network and earn commissions</li>
+        </ul>
+        <p className="text-sm text-blue-700 mt-2">
+          <a href="/register" className="font-medium underline">Sign up now</a> to enjoy these benefits!
+        </p>
+      </div>
       <p className="text-sm text-gray-600 mb-6">
         Please provide your information to complete your purchase as a guest.
       </p>
-      
+
       <form onSubmit={handleSubmit}>
         <div className="space-y-6">
           {/* Personal Information */}
@@ -161,7 +173,7 @@ const GuestCheckoutForm: React.FC<GuestCheckoutFormProps> = ({ onSubmit, onCance
                   )}
                 </div>
               </div>
-              
+
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                   Email Address <span className="text-red-500">*</span>
@@ -188,7 +200,7 @@ const GuestCheckoutForm: React.FC<GuestCheckoutFormProps> = ({ onSubmit, onCance
                   )}
                 </div>
               </div>
-              
+
               <div>
                 <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
                   Phone Number <span className="text-red-500">*</span>
@@ -217,7 +229,7 @@ const GuestCheckoutForm: React.FC<GuestCheckoutFormProps> = ({ onSubmit, onCance
               </div>
             </div>
           </div>
-          
+
           {/* Shipping Address */}
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-3">Shipping Address</h3>
@@ -248,7 +260,7 @@ const GuestCheckoutForm: React.FC<GuestCheckoutFormProps> = ({ onSubmit, onCance
                   )}
                 </div>
               </div>
-              
+
               <div>
                 <label htmlFor="addressLine2" className="block text-sm font-medium text-gray-700 mb-1">
                   Address Line 2 (Optional)
@@ -263,7 +275,7 @@ const GuestCheckoutForm: React.FC<GuestCheckoutFormProps> = ({ onSubmit, onCance
                   onChange={handleChange}
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
@@ -286,7 +298,7 @@ const GuestCheckoutForm: React.FC<GuestCheckoutFormProps> = ({ onSubmit, onCance
                     <p className="mt-1 text-sm text-red-600">{errors.city}</p>
                   )}
                 </div>
-                
+
                 <div>
                   <label htmlFor="region" className="block text-sm font-medium text-gray-700 mb-1">
                     Region/Province <span className="text-red-500">*</span>
@@ -309,7 +321,7 @@ const GuestCheckoutForm: React.FC<GuestCheckoutFormProps> = ({ onSubmit, onCance
                   )}
                 </div>
               </div>
-              
+
               <div>
                 <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-1">
                   Postal Code <span className="text-red-500">*</span>
@@ -333,7 +345,7 @@ const GuestCheckoutForm: React.FC<GuestCheckoutFormProps> = ({ onSubmit, onCance
               </div>
             </div>
           </div>
-          
+
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
             <button
               type="button"

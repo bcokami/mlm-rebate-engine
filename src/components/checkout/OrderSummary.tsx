@@ -122,9 +122,31 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
         {isGuestCheckout && (
           <div className="mt-6 bg-yellow-50 p-3 rounded-md">
             <h4 className="text-sm font-medium text-yellow-800 mb-1">Retail Price</h4>
-            <p className="text-xs text-yellow-700">
+            <p className="text-xs text-yellow-700 mb-2">
               You are purchasing at retail price as a guest. Sign up as a member to get discounted prices and earn rebates on your purchases.
             </p>
+
+            {/* Calculate potential savings */}
+            {(() => {
+              const srpTotal = items.reduce((total, item) => total + (item.srp * item.quantity), 0);
+              const memberTotal = items.reduce((total, item) => total + (item.price * item.quantity), 0);
+              const savings = srpTotal - memberTotal;
+              const savingsPercentage = Math.round((savings / srpTotal) * 100);
+
+              if (savings > 0) {
+                return (
+                  <div className="text-xs bg-white p-2 rounded border border-yellow-200">
+                    <p className="font-medium text-green-700">
+                      Members save ₱{savings.toFixed(2)} ({savingsPercentage}%) on this order!
+                    </p>
+                    <a href="/register" className="text-blue-600 underline block mt-1">
+                      Sign up now to save
+                    </a>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         )}
       </div>

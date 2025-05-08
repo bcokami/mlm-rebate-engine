@@ -13,8 +13,9 @@ export default function RegisterPage() {
     PERSONAL_INFO: 0,
     CONTACT_INFO: 1,
     SECURITY: 2,
-    REFERRAL: 3,
-    REVIEW: 4
+    PAYMENT_INFO: 3,
+    REFERRAL: 4,
+    REVIEW: 5
   };
 
   const [currentStep, setCurrentStep] = useState(STEPS.PERSONAL_INFO);
@@ -30,6 +31,12 @@ export default function RegisterPage() {
     region: "",
     postalCode: "",
     birthdate: "",
+    preferredPaymentMethod: "",
+    bankName: "",
+    bankAccountNumber: "",
+    bankAccountName: "",
+    gcashNumber: "",
+    payMayaNumber: "",
     agreeToTerms: false,
     receiveUpdates: false
   });
@@ -83,6 +90,38 @@ export default function RegisterPage() {
       case "confirmPassword":
         if (!value) error = "Please confirm your password";
         else if (value !== formData.password) error = "Passwords do not match";
+        break;
+      case "preferredPaymentMethod":
+        if (value === "bank") {
+          if (!formData.bankName) error = "Bank name is required";
+          else if (!formData.bankAccountNumber) error = "Bank account number is required";
+          else if (!formData.bankAccountName) error = "Bank account name is required";
+        } else if (value === "gcash") {
+          if (!formData.gcashNumber) error = "GCash number is required";
+        } else if (value === "paymaya") {
+          if (!formData.payMayaNumber) error = "PayMaya number is required";
+        }
+        break;
+      case "bankName":
+      case "bankAccountNumber":
+      case "bankAccountName":
+        if (formData.preferredPaymentMethod === "bank" && !value) {
+          error = `${name.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required`;
+        }
+        break;
+      case "gcashNumber":
+        if (formData.preferredPaymentMethod === "gcash" && !value) {
+          error = "GCash number is required";
+        } else if (value && !/^\d{11}$/.test(value)) {
+          error = "Please enter a valid 11-digit GCash number";
+        }
+        break;
+      case "payMayaNumber":
+        if (formData.preferredPaymentMethod === "paymaya" && !value) {
+          error = "PayMaya number is required";
+        } else if (value && !/^\d{11}$/.test(value)) {
+          error = "Please enter a valid 11-digit PayMaya number";
+        }
         break;
       case "agreeToTerms":
         if (!value) error = "You must agree to the terms and conditions";
@@ -139,9 +178,21 @@ export default function RegisterPage() {
       [STEPS.PERSONAL_INFO]: ["name"],
       [STEPS.CONTACT_INFO]: ["email", "phone"],
       [STEPS.SECURITY]: ["password", "confirmPassword"],
+      [STEPS.PAYMENT_INFO]: ["preferredPaymentMethod"],
       [STEPS.REFERRAL]: ["agreeToTerms"],
       [STEPS.REVIEW]: []
     };
+
+    // Add payment method specific fields based on selected payment method
+    if (currentStep === STEPS.PAYMENT_INFO) {
+      if (formData.preferredPaymentMethod === "bank") {
+        fieldsToValidate[STEPS.PAYMENT_INFO].push("bankName", "bankAccountNumber", "bankAccountName");
+      } else if (formData.preferredPaymentMethod === "gcash") {
+        fieldsToValidate[STEPS.PAYMENT_INFO].push("gcashNumber");
+      } else if (formData.preferredPaymentMethod === "paymaya") {
+        fieldsToValidate[STEPS.PAYMENT_INFO].push("payMayaNumber");
+      }
+    }
 
     // Validate required fields for current step
     fieldsToValidate[currentStep].forEach(field => {
@@ -210,6 +261,19 @@ export default function RegisterPage() {
     // Fields to validate
     const allFields = ["name", "email", "password", "confirmPassword", "agreeToTerms"];
 
+    // Add payment method specific fields
+    if (formData.preferredPaymentMethod) {
+      allFields.push("preferredPaymentMethod");
+
+      if (formData.preferredPaymentMethod === "bank") {
+        allFields.push("bankName", "bankAccountNumber", "bankAccountName");
+      } else if (formData.preferredPaymentMethod === "gcash") {
+        allFields.push("gcashNumber");
+      } else if (formData.preferredPaymentMethod === "paymaya") {
+        allFields.push("payMayaNumber");
+      }
+    }
+
     allFields.forEach(field => {
       const error = validateField(field, formData[field as keyof typeof formData]);
       if (error) {
@@ -242,6 +306,13 @@ export default function RegisterPage() {
         region: formData.region,
         postalCode: formData.postalCode,
         birthdate: formData.birthdate,
+        preferredPaymentMethod: formData.preferredPaymentMethod || undefined,
+        bankName: formData.preferredPaymentMethod === "bank" ? formData.bankName : undefined,
+        bankAccountNumber: formData.preferredPaymentMethod === "bank" ? formData.bankAccountNumber : undefined,
+        bankAccountName: formData.preferredPaymentMethod === "bank" ? formData.bankAccountName : undefined,
+        gcashNumber: formData.preferredPaymentMethod === "gcash" ? formData.gcashNumber : undefined,
+        payMayaNumber: formData.preferredPaymentMethod === "paymaya" ? formData.payMayaNumber : undefined,
+        agreeToTerms: formData.agreeToTerms,
         receiveUpdates: formData.receiveUpdates
       };
 
@@ -284,6 +355,7 @@ export default function RegisterPage() {
     "Personal Information",
     "Contact Details",
     "Security",
+    "Payment Details",
     "Referral",
     "Review & Submit"
   ];
@@ -366,6 +438,9 @@ export default function RegisterPage() {
                 value={formData.birthdate}
                 onChange={handleChange}
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Your birth date is used to verify your identity and for birthday promotions
+              </p>
             </div>
           </div>
         );
@@ -555,6 +630,220 @@ export default function RegisterPage() {
           </div>
         );
 
+      case STEPS.PAYMENT_INFO:
+        return (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">
+                Payment Details for Rebates <span className="text-red-500">*</span>
+              </h3>
+              <p className="text-xs text-gray-500 mb-4">
+                Please provide your preferred payment method for receiving rebates and commissions.
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Payment Method
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className={`relative block p-3 border rounded-lg ${
+                        formData.preferredPaymentMethod === "bank"
+                          ? "border-green-500 bg-green-50"
+                          : "border-gray-300"
+                      } cursor-pointer`}>
+                        <input
+                          type="radio"
+                          name="preferredPaymentMethod"
+                          value="bank"
+                          className="sr-only"
+                          checked={formData.preferredPaymentMethod === "bank"}
+                          onChange={handleChange}
+                        />
+                        <span className="text-sm font-medium">Bank Transfer</span>
+                      </label>
+                    </div>
+                    <div>
+                      <label className={`relative block p-3 border rounded-lg ${
+                        formData.preferredPaymentMethod === "gcash"
+                          ? "border-green-500 bg-green-50"
+                          : "border-gray-300"
+                      } cursor-pointer`}>
+                        <input
+                          type="radio"
+                          name="preferredPaymentMethod"
+                          value="gcash"
+                          className="sr-only"
+                          checked={formData.preferredPaymentMethod === "gcash"}
+                          onChange={handleChange}
+                        />
+                        <span className="text-sm font-medium">GCash</span>
+                      </label>
+                    </div>
+                    <div>
+                      <label className={`relative block p-3 border rounded-lg ${
+                        formData.preferredPaymentMethod === "paymaya"
+                          ? "border-green-500 bg-green-50"
+                          : "border-gray-300"
+                      } cursor-pointer`}>
+                        <input
+                          type="radio"
+                          name="preferredPaymentMethod"
+                          value="paymaya"
+                          className="sr-only"
+                          checked={formData.preferredPaymentMethod === "paymaya"}
+                          onChange={handleChange}
+                        />
+                        <span className="text-sm font-medium">PayMaya</span>
+                      </label>
+                    </div>
+                  </div>
+                  {errors.preferredPaymentMethod && (
+                    <p className="mt-1 text-sm text-red-600">{errors.preferredPaymentMethod}</p>
+                  )}
+                </div>
+
+                {formData.preferredPaymentMethod === "bank" && (
+                  <div className="space-y-4 p-4 border border-gray-200 rounded-md bg-gray-50">
+                    <div>
+                      <label htmlFor="bankName" className="block text-sm font-medium text-gray-700 mb-1">
+                        Bank Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        id="bankName"
+                        name="bankName"
+                        type="text"
+                        className={`appearance-none block w-full px-3 py-2 border ${
+                          errors.bankName && touched.bankName ? 'border-red-300' : 'border-gray-300'
+                        } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm`}
+                        placeholder="BDO, BPI, Metrobank, etc."
+                        value={formData.bankName}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                      />
+                      {errors.bankName && touched.bankName && (
+                        <p className="mt-1 text-sm text-red-600">{errors.bankName}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label htmlFor="bankAccountNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                        Account Number <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        id="bankAccountNumber"
+                        name="bankAccountNumber"
+                        type="text"
+                        className={`appearance-none block w-full px-3 py-2 border ${
+                          errors.bankAccountNumber && touched.bankAccountNumber ? 'border-red-300' : 'border-gray-300'
+                        } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm`}
+                        placeholder="Your bank account number"
+                        value={formData.bankAccountNumber}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                      />
+                      {errors.bankAccountNumber && touched.bankAccountNumber && (
+                        <p className="mt-1 text-sm text-red-600">{errors.bankAccountNumber}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label htmlFor="bankAccountName" className="block text-sm font-medium text-gray-700 mb-1">
+                        Account Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        id="bankAccountName"
+                        name="bankAccountName"
+                        type="text"
+                        className={`appearance-none block w-full px-3 py-2 border ${
+                          errors.bankAccountName && touched.bankAccountName ? 'border-red-300' : 'border-gray-300'
+                        } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm`}
+                        placeholder="Name on your bank account"
+                        value={formData.bankAccountName}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                      />
+                      {errors.bankAccountName && touched.bankAccountName && (
+                        <p className="mt-1 text-sm text-red-600">{errors.bankAccountName}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {formData.preferredPaymentMethod === "gcash" && (
+                  <div className="space-y-4 p-4 border border-gray-200 rounded-md bg-gray-50">
+                    <div>
+                      <label htmlFor="gcashNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                        GCash Number <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        id="gcashNumber"
+                        name="gcashNumber"
+                        type="text"
+                        className={`appearance-none block w-full px-3 py-2 border ${
+                          errors.gcashNumber && touched.gcashNumber ? 'border-red-300' : 'border-gray-300'
+                        } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm`}
+                        placeholder="09XX XXX XXXX"
+                        value={formData.gcashNumber}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                      />
+                      {errors.gcashNumber && touched.gcashNumber && (
+                        <p className="mt-1 text-sm text-red-600">{errors.gcashNumber}</p>
+                      )}
+                      <p className="mt-1 text-xs text-gray-500">
+                        Please ensure this is the same number registered with your GCash account
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {formData.preferredPaymentMethod === "paymaya" && (
+                  <div className="space-y-4 p-4 border border-gray-200 rounded-md bg-gray-50">
+                    <div>
+                      <label htmlFor="payMayaNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                        PayMaya Number <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        id="payMayaNumber"
+                        name="payMayaNumber"
+                        type="text"
+                        className={`appearance-none block w-full px-3 py-2 border ${
+                          errors.payMayaNumber && touched.payMayaNumber ? 'border-red-300' : 'border-gray-300'
+                        } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm`}
+                        placeholder="09XX XXX XXXX"
+                        value={formData.payMayaNumber}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                      />
+                      {errors.payMayaNumber && touched.payMayaNumber && (
+                        <p className="mt-1 text-sm text-red-600">{errors.payMayaNumber}</p>
+                      )}
+                      <p className="mt-1 text-xs text-gray-500">
+                        Please ensure this is the same number registered with your PayMaya account
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <FaInfoCircle className="h-5 w-5 text-yellow-400" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-yellow-700">
+                    Your payment details are used to send your rebates and commissions. Make sure they are accurate.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
       case STEPS.REFERRAL:
         return (
           <div className="space-y-4">
@@ -677,6 +966,32 @@ export default function RegisterPage() {
                       </p>
                     )}
                   </div>
+
+                  {formData.preferredPaymentMethod && (
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500">Payment Information</h4>
+                      <p className="mt-1 text-sm text-gray-900">
+                        Payment Method: {formData.preferredPaymentMethod === "bank"
+                          ? "Bank Transfer"
+                          : formData.preferredPaymentMethod === "gcash"
+                            ? "GCash"
+                            : "PayMaya"}
+                      </p>
+                      {formData.preferredPaymentMethod === "bank" && (
+                        <>
+                          <p className="mt-1 text-sm text-gray-900">Bank: {formData.bankName}</p>
+                          <p className="mt-1 text-sm text-gray-900">Account: {formData.bankAccountNumber}</p>
+                          <p className="mt-1 text-sm text-gray-900">Account Name: {formData.bankAccountName}</p>
+                        </>
+                      )}
+                      {formData.preferredPaymentMethod === "gcash" && (
+                        <p className="mt-1 text-sm text-gray-900">GCash Number: {formData.gcashNumber}</p>
+                      )}
+                      {formData.preferredPaymentMethod === "paymaya" && (
+                        <p className="mt-1 text-sm text-gray-900">PayMaya Number: {formData.payMayaNumber}</p>
+                      )}
+                    </div>
+                  )}
 
                   {formData.uplineId && (
                     <div>

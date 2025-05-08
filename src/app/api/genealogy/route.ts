@@ -136,8 +136,43 @@ export async function GET(request: NextRequest) {
     // Calculate statistics if requested
     let statistics = null;
     if (includeStats) {
-      // Get level counts
-      const levelCounts = await getDownlineLevelCounts(targetUserId, maxLevel);
+      // Fetch all statistics in parallel for better performance
+      const [
+        levelCounts,
+        downlineBalanceResult,
+        rankDistribution,
+        ranks
+      ] = await Promise.all([
+        // Get level counts
+        getDownlineLevelCounts(targetUserId, maxLevel),
+
+        // Calculate total wallet balance of downline users with a single aggregation query
+        prisma.$queryRaw`
+          SELECT SUM(walletBalance) as totalBalance
+          FROM User
+          WHERE uplineId = ${targetUserId}
+        `,
+
+        // Get rank distribution
+        prisma.user.groupBy({
+          by: ['rankId'],
+          where: {
+            uplineId: targetUserId,
+          },
+          _count: {
+            id: true,
+          },
+        }),
+
+        // Get ranks to map IDs to names
+        prisma.rank.findMany({
+          select: {
+            id: true,
+            name: true
+          },
+          cacheStrategy: { ttl: 60 * 60 * 1000 } // Cache for 1 hour
+        })
+      ]);
 
       // Calculate total users
       const totalUsers = Object.values(levelCounts).reduce((sum, count) => sum + count, 0) + 1; // +1 for the root user
@@ -145,35 +180,10 @@ export async function GET(request: NextRequest) {
       // Get direct downline count
       const directDownlineCount = levelCounts[1] || 0;
 
-      // Calculate total wallet balance of downline users
-      let totalDownlineBalance = 0;
+      // Extract total balance from the raw query result
+      const totalDownlineBalance = downlineBalanceResult[0]?.totalBalance || 0;
 
-      // Get all downline users
-      const downlineUsers = await prisma.user.findMany({
-        where: {
-          uplineId: targetUserId,
-        },
-        select: {
-          walletBalance: true,
-        },
-      });
-
-      // Sum up wallet balances
-      totalDownlineBalance = downlineUsers.reduce((sum, user) => sum + (user.walletBalance || 0), 0);
-
-      // Get rank distribution
-      const rankDistribution = await prisma.user.groupBy({
-        by: ['rankId'],
-        where: {
-          uplineId: targetUserId,
-        },
-        _count: {
-          id: true,
-        },
-      });
-
-      // Get ranks to map IDs to names
-      const ranks = await prisma.rank.findMany();
+      // Create a map of rank IDs to names
       const rankMap = new Map(ranks.map(rank => [rank.id, rank.name]));
 
       // Format rank distribution

@@ -290,17 +290,43 @@ export default function CheckoutPage() {
             <p className="text-lg text-gray-600 mb-6">
               Thank you for your order. Your order number is <span className="font-semibold">{orderId}</span>.
             </p>
-            <p className="text-gray-600 mb-8">
-              We've sent a confirmation email with all the details of your purchase.
-              You can also track your order status in your account dashboard.
-            </p>
+
+            {isGuestCheckout ? (
+              <>
+                <p className="text-gray-600 mb-4">
+                  We've sent a confirmation email with all the details of your purchase to {guestData?.email}.
+                </p>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 max-w-lg mx-auto">
+                  <h3 className="font-medium text-blue-800 text-lg mb-2">Create an Account</h3>
+                  <p className="text-blue-700 mb-4">
+                    Create an account to track your order, get member discounts, and earn rebates on future purchases!
+                  </p>
+                  <Link
+                    href="/register"
+                    className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                  >
+                    <FaUserPlus className="mr-2" />
+                    Create Account
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <p className="text-gray-600 mb-8">
+                We've sent a confirmation email with all the details of your purchase.
+                You can also track your order status in your account dashboard.
+              </p>
+            )}
+
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link
-                href="/orders"
-                className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-              >
-                View My Orders
-              </Link>
+              {!isGuestCheckout && (
+                <Link
+                  href="/orders"
+                  className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                >
+                  View My Orders
+                </Link>
+              )}
               <Link
                 href="/shop"
                 className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
@@ -386,31 +412,55 @@ export default function CheckoutPage() {
                         onCancel={handleGuestFormCancel}
                       />
                     ) : (
-                      <div className="text-center py-8">
-                        <div className="mx-auto h-16 w-16 text-gray-400 mb-4">
-                          <FaUser className="h-full w-full" />
+                      <div className="py-8">
+                        <div className="text-center mb-6">
+                          <div className="mx-auto h-16 w-16 text-gray-400 mb-4">
+                            <FaUser className="h-full w-full" />
+                          </div>
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">Checkout Options</h3>
+                          <p className="text-gray-600">
+                            Choose how you'd like to proceed with your purchase
+                          </p>
                         </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">Guest Checkout</h3>
-                        <p className="text-gray-600 mb-6">
-                          Continue as a guest to purchase products at retail price.
-                        </p>
-                        <div className="flex flex-col sm:flex-row justify-center gap-4">
-                          <button
-                            type="button"
-                            onClick={handleGuestCheckout}
-                            className="inline-flex items-center justify-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-green-600 hover:bg-green-700"
-                          >
-                            <FaUserPlus className="mr-2" />
-                            Continue as Guest
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleLoginInstead}
-                            className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 rounded-md shadow-sm text-base font-medium text-gray-700 bg-white hover:bg-gray-50"
-                          >
-                            <FaUser className="mr-2" />
-                            Sign In for Member Prices
-                          </button>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                          {/* Member option */}
+                          <div className="border border-blue-200 rounded-lg p-6 bg-blue-50 flex flex-col">
+                            <h4 className="font-medium text-blue-800 text-lg mb-2">Sign In as Member</h4>
+                            <ul className="text-sm text-blue-700 list-disc pl-5 space-y-1 mb-4 flex-grow">
+                              <li>Get <strong>discounted member prices</strong></li>
+                              <li>Earn rebates on your purchase</li>
+                              <li>Track your order history</li>
+                              <li>Faster checkout experience</li>
+                            </ul>
+                            <button
+                              type="button"
+                              onClick={handleLoginInstead}
+                              className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700"
+                            >
+                              <FaUser className="mr-2" />
+                              Sign In for Member Prices
+                            </button>
+                          </div>
+
+                          {/* Guest option */}
+                          <div className="border border-gray-200 rounded-lg p-6 bg-gray-50 flex flex-col">
+                            <h4 className="font-medium text-gray-800 text-lg mb-2">Continue as Guest</h4>
+                            <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1 mb-4 flex-grow">
+                              <li>Quick checkout without registration</li>
+                              <li>Purchase at retail price</li>
+                              <li>No account required</li>
+                              <li>Option to create account later</li>
+                            </ul>
+                            <button
+                              type="button"
+                              onClick={handleGuestCheckout}
+                              className="w-full inline-flex items-center justify-center px-6 py-3 border border-gray-300 rounded-md shadow-sm text-base font-medium text-gray-700 bg-white hover:bg-gray-100"
+                            >
+                              <FaUserPlus className="mr-2" />
+                              Continue as Guest
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )
@@ -441,6 +491,7 @@ export default function CheckoutPage() {
                   onMethodSelect={handlePaymentMethodSelect}
                   onSubmit={handlePaymentSubmit}
                   onBack={() => setCurrentStep(CheckoutStep.SHIPPING_METHOD)}
+                  isGuestCheckout={isGuestCheckout}
                 />
               )}
 

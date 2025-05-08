@@ -18,7 +18,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, email, password, uplineId, phone, profileImage } = validation.data!;
+    const {
+      name,
+      email,
+      password,
+      uplineId,
+      phone,
+      profileImage,
+      birthdate,
+      address,
+      city,
+      region,
+      postalCode,
+      preferredPaymentMethod,
+      bankName,
+      bankAccountNumber,
+      bankAccountName,
+      gcashNumber,
+      payMayaNumber,
+      receiveUpdates
+    } = validation.data!;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -60,6 +79,19 @@ export async function POST(request: NextRequest) {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Prepare payment details
+    const paymentDetails: Record<string, any> = {};
+
+    if (preferredPaymentMethod === 'bank' && bankName && bankAccountNumber && bankAccountName) {
+      paymentDetails.bankName = bankName;
+      paymentDetails.accountNumber = bankAccountNumber;
+      paymentDetails.accountName = bankAccountName;
+    } else if (preferredPaymentMethod === 'gcash' && gcashNumber) {
+      paymentDetails.gcashNumber = gcashNumber;
+    } else if (preferredPaymentMethod === 'paymaya' && payMayaNumber) {
+      paymentDetails.payMayaNumber = payMayaNumber;
+    }
+
     // Create the user
     const user = await prisma.user.create({
       data: {
@@ -68,6 +100,14 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         phone,
         profileImage,
+        birthdate: birthdate || undefined,
+        address: address || undefined,
+        city: city || undefined,
+        region: region || undefined,
+        postalCode: postalCode || undefined,
+        preferredPaymentMethod: preferredPaymentMethod || undefined,
+        paymentDetails: Object.keys(paymentDetails).length > 0 ? paymentDetails : undefined,
+        receiveUpdates: receiveUpdates || false,
         uplineId: parsedUplineId,
         rankId: 1, // Default rank
       },

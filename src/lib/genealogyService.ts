@@ -373,38 +373,44 @@ export async function getDownlineLevelCounts(
   userId: number,
   maxLevel: number = 10
 ): Promise<Record<number, number>> {
-  const counts: Record<number, number> = {};
-  let currentLevelIds = [userId];
-  let currentLevel = 1;
+  // Create a cache key
+  const cacheKey = `levelCounts:${userId}:${maxLevel}`;
 
-  while (currentLevelIds.length > 0 && currentLevel <= maxLevel) {
-    // Get all direct downline of the current level
-    const nextLevel = await prisma.user.findMany({
-      where: {
-        uplineId: {
-          in: currentLevelIds,
-        },
-      },
-      select: {
-        id: true,
-      },
-    });
+  // Try to get from cache first
+  return await genealogyCache.getOrSet(cacheKey, async (): Promise<Record<number, number>> => {
+    const counts: Record<number, number> = {};
 
-    const nextLevelIds = nextLevel.map(user => user.id);
+    // Use a more efficient approach with a recursive CTE (Common Table Expression)
+    // This avoids multiple round trips to the database
+    const result = await prisma.$queryRaw`
+      WITH RECURSIVE downline AS (
+        -- Base case: direct downline of the user
+        SELECT id, 1 AS level
+        FROM User
+        WHERE uplineId = ${userId}
 
-    if (nextLevelIds.length === 0) {
-      break;
+        UNION ALL
+
+        -- Recursive case: downline of downline
+        SELECT u.id, d.level + 1
+        FROM User u
+        JOIN downline d ON u.uplineId = d.id
+        WHERE d.level < ${maxLevel}
+      )
+      -- Count users at each level
+      SELECT level, COUNT(*) as count
+      FROM downline
+      GROUP BY level
+      ORDER BY level
+    `;
+
+    // Format the result
+    for (const row of result as any[]) {
+      counts[row.level] = Number(row.count);
     }
 
-    // Store the count for this level
-    counts[currentLevel] = nextLevelIds.length;
-
-    // Move to the next level
-    currentLevelIds = nextLevelIds;
-    currentLevel++;
-  }
-
-  return counts;
+    return counts;
+  }, 10 * 60 * 1000); // Cache for 10 minutes
 }
 
 /**
@@ -419,68 +425,125 @@ export async function getUserPerformanceMetrics(userId: number): Promise<UserPer
 
   // Try to get from cache first
   return await genealogyCache.getOrSet(cacheKey, async (): Promise<UserPerformanceMetrics> => {
-    // Mock data for now - in a real implementation, these would be actual database queries
-    // This avoids TypeScript errors while providing realistic test data
+    // Get downline IDs for team calculations
+    const downlineIdsQuery = prisma.$queryRaw`
+      WITH RECURSIVE downline AS (
+        -- Base case: direct downline of the user
+        SELECT id
+        FROM User
+        WHERE uplineId = ${userId}
 
-    // Get the user's personal sales (orders placed by this user)
-    const personalSales = {
-      _sum: {
-        totalAmount: Math.floor(Math.random() * 10000) / 100
-      }
-    };
+        UNION ALL
 
-    // Get the user's team sales (orders placed by downline)
-    const downlineIds = await getEntireDownlineIds(userId);
+        -- Recursive case: downline of downline
+        SELECT u.id
+        FROM User u
+        JOIN downline d ON u.uplineId = d.id
+      )
+      SELECT id FROM downline
+    `;
 
-    const teamSales = {
-      _sum: {
-        totalAmount: Math.floor(Math.random() * 50000) / 100
-      }
-    };
-
-    // Get the user's rebates earned
-    const rebatesEarned = {
-      _sum: {
-        amount: Math.floor(Math.random() * 5000) / 100
-      }
-    };
-
-    // Get the user's team growth metrics
+    // Calculate date ranges for recent metrics
     const oneMonthAgo = new Date();
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-    const newTeamMembers = Math.floor(Math.random() * 10);
+    // Run all queries in parallel for better performance
+    const [
+      downlineIds,
+      personalSalesResult,
+      rebatesEarnedResult,
+      newTeamMembersResult,
+      rankHistoryResult
+    ] = await Promise.all([
+      // Get all downline IDs
+      downlineIdsQuery,
 
-    // Get the user's rank advancement history
-    const rankHistory = [
-      {
-        rankId: 1,
-        rank: { name: 'Starter' },
-        createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
-      },
-      {
-        rankId: 2,
-        rank: { name: 'Bronze' },
-        createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
-      },
-      {
-        rankId: 3,
-        rank: { name: 'Silver' },
-        createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-      }
-    ];
+      // Get personal sales
+      prisma.purchase.aggregate({
+        where: {
+          userId: userId,
+        },
+        _sum: {
+          totalAmount: true,
+        },
+      }),
 
-    // Calculate activity score (0-100)
-    const activityScore = Math.min(100, Math.floor(Math.random() * 100));
+      // Get rebates earned
+      prisma.rebate.aggregate({
+        where: {
+          receiverId: userId,
+        },
+        _sum: {
+          amount: true,
+        },
+      }),
+
+      // Get new team members in the last month
+      prisma.user.count({
+        where: {
+          uplineId: userId,
+          createdAt: {
+            gte: oneMonthAgo,
+          },
+        },
+      }),
+
+      // Get rank history (mock data for now)
+      Promise.resolve([
+        {
+          rankId: 1,
+          rank: { name: 'Starter' },
+          createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+        },
+        {
+          rankId: 2,
+          rank: { name: 'Bronze' },
+          createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
+        },
+        {
+          rankId: 3,
+          rank: { name: 'Silver' },
+          createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+        }
+      ])
+    ]);
+
+    // Get team sales using the downline IDs
+    const teamSalesResult = await prisma.purchase.aggregate({
+      where: {
+        userId: {
+          in: (downlineIds as any[]).map(row => row.id),
+        },
+      },
+      _sum: {
+        totalAmount: true,
+      },
+    });
+
+    // Extract values from results
+    const personalSales = personalSalesResult._sum.totalAmount || 0;
+    const teamSales = teamSalesResult._sum.totalAmount || 0;
+    const rebatesEarned = rebatesEarnedResult._sum.amount || 0;
+    const teamSize = (downlineIds as any[]).length;
+    const newTeamMembers = newTeamMembersResult;
+
+    // Calculate activity score based on real metrics
+    // Higher score for more sales, rebates, and team growth
+    const activityScore = Math.min(100, Math.floor(
+      (personalSales / 1000 * 20) + // 20% weight for personal sales
+      (teamSales / 5000 * 30) + // 30% weight for team sales
+      (rebatesEarned / 500 * 20) + // 20% weight for rebates
+      (newTeamMembers / 5 * 30) // 30% weight for team growth
+    ));
 
     return {
-      personalSales: personalSales._sum.totalAmount || 0,
-      teamSales: teamSales._sum.totalAmount || 0,
-      totalSales: (personalSales._sum.totalAmount || 0) + (teamSales._sum.totalAmount || 0),
-      rebatesEarned: rebatesEarned._sum.amount || 0,
-      teamSize: downlineIds.length,
+      personalSales,
+      teamSales,
+      totalSales: personalSales + teamSales,
+      rebatesEarned,
+      teamSize,
       newTeamMembers,
-      rankHistory: rankHistory.map(history => ({
+      rankHistory: rankHistoryResult.map(history => ({
         rankId: history.rankId,
         rankName: history.rank.name,
         achievedAt: history.createdAt,

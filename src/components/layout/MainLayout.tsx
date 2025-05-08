@@ -18,6 +18,13 @@ import {
   FaLink
 } from 'react-icons/fa';
 import CartButton from '@/components/cart/CartButton';
+import dynamic from 'next/dynamic';
+
+// Dynamically import PerformanceMonitor with no SSR
+const PerformanceMonitor = dynamic(
+  () => import('@/components/common/PerformanceMonitor'),
+  { ssr: false }
+);
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -176,6 +183,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {children}
         </main>
+
+        {/* Performance Monitor - only visible in development */}
+        <PerformanceMonitor />
       </div>
     </div>
   );

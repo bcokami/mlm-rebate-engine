@@ -10,6 +10,7 @@ interface PaymentMethodSelectorProps {
   onMethodSelect: (method: string) => void;
   onSubmit: () => void;
   onBack: () => void;
+  isGuestCheckout?: boolean;
 }
 
 const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
@@ -17,6 +18,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   onMethodSelect,
   onSubmit,
   onBack,
+  isGuestCheckout = false,
 }) => {
   const [creditCardDetails, setCreditCardDetails] = useState({
     cardNumber: '',
@@ -24,7 +26,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
     expiryDate: '',
     cvv: '',
   });
-  
+
   const handleCreditCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCreditCardDetails(prev => ({
@@ -32,7 +34,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
       [name]: value,
     }));
   };
-  
+
   const paymentMethods = [
     {
       id: 'credit_card',
@@ -71,13 +73,23 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
       description: 'Pay when you receive your order',
     },
   ];
-  
+
   return (
     <div>
       <h2 className="text-lg font-medium text-gray-900 mb-4">Payment Method</h2>
-      
+
+      {isGuestCheckout && (
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+          <p className="text-sm text-yellow-700">
+            <strong>Guest Checkout:</strong> You are checking out as a guest. Some payment methods like Wallet Balance are only available to registered members.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-4 mb-6">
-        {paymentMethods.map((method) => (
+        {paymentMethods
+          .filter(method => !isGuestCheckout || method.id !== 'wallet')
+          .map((method) => (
           <div
             key={method.id}
             className={`border rounded-md p-4 cursor-pointer ${
@@ -101,7 +113,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                 </div>
               )}
             </div>
-            
+
             {/* Credit card form */}
             {selectedMethod === 'credit_card' && method.id === 'credit_card' && (
               <div className="mt-4 pt-4 border-t border-gray-200">
@@ -120,7 +132,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                   </div>
-                  
+
                   <div>
                     <label htmlFor="cardholderName" className="block text-sm font-medium text-gray-700">
                       Cardholder Name
@@ -135,7 +147,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="expiryDate" className="block text-sm font-medium text-gray-700">
@@ -151,7 +163,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       />
                     </div>
-                    
+
                     <div>
                       <label htmlFor="cvv" className="block text-sm font-medium text-gray-700">
                         CVV
@@ -170,7 +182,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                 </div>
               </div>
             )}
-            
+
             {/* GCash instructions */}
             {selectedMethod === 'gcash' && method.id === 'gcash' && (
               <div className="mt-4 pt-4 border-t border-gray-200">
@@ -179,7 +191,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                 </p>
               </div>
             )}
-            
+
             {/* Maya instructions */}
             {selectedMethod === 'maya' && method.id === 'maya' && (
               <div className="mt-4 pt-4 border-t border-gray-200">
@@ -188,7 +200,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                 </p>
               </div>
             )}
-            
+
             {/* Bank transfer instructions */}
             {selectedMethod === 'bank_transfer' && method.id === 'bank_transfer' && (
               <div className="mt-4 pt-4 border-t border-gray-200">
@@ -210,7 +222,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                 </p>
               </div>
             )}
-            
+
             {/* Wallet balance info */}
             {selectedMethod === 'wallet' && method.id === 'wallet' && (
               <div className="mt-4 pt-4 border-t border-gray-200">
@@ -219,7 +231,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                 </p>
               </div>
             )}
-            
+
             {/* COD instructions */}
             {selectedMethod === 'cod' && method.id === 'cod' && (
               <div className="mt-4 pt-4 border-t border-gray-200">
@@ -231,7 +243,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
           </div>
         ))}
       </div>
-      
+
       <div className="mt-6 flex justify-between">
         <button
           type="button"
