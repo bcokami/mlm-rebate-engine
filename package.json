@@ -38,7 +38,17 @@
     "test:ui:genealogy": "node scripts/run-ui-tests.js genealogy",
     "test:ui:checkout": "node scripts/run-ui-tests.js checkout",
     "cypress:open": "cypress open",
-    "cypress:run": "cypress run"
+    "cypress:run": "cypress run",
+    "test:e2e": "node scripts/run-all-tests.js",
+    "test:e2e:basic": "cypress run --spec 'cypress/e2e/absolute-pass.cy.js'",
+    "test:e2e:comprehensive": "cypress run --spec 'cypress/e2e/comprehensive.cy.js'",
+    "test:e2e:visual": "cypress run --spec 'cypress/e2e/visual-regression.cy.js'",
+    "test:e2e:performance": "cypress run --spec 'cypress/e2e/performance.cy.js'",
+    "test:e2e:accessibility": "cypress run --spec 'cypress/e2e/accessibility.cy.js'",
+    "test:e2e:user-flows": "cypress run --spec 'cypress/e2e/user-flows.cy.js'",
+    "test:e2e:error-handling": "cypress run --spec 'cypress/e2e/error-handling.cy.js'",
+    "test:e2e:mobile": "cypress run --spec 'cypress/e2e/mobile-features.cy.js'",
+    "test:e2e:security": "cypress run --spec 'cypress/e2e/security-features.cy.js'"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.9.0",
