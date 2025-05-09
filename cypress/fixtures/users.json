@@ -1,0 +1,42 @@
+{
+  "testUser": {
+    "id": 1,
+    "email": "test@example.com",
+    "name": "Test User",
+    "rank": "Distributor",
+    "walletBalance": 1500.75
+  },
+  "adminUser": {
+    "id": 2,
+    "email": "admin@example.com",
+    "name": "Admin User",
+    "rank": "Administrator",
+    "walletBalance": 5000.00
+  },
+  "downlineUsers": [
+    {
+      "id": 3,
+      "name": "Maria Santos",
+      "email": "maria@example.com",
+      "rank": "Silver",
+      "position": "left",
+      "walletBalance": 750.25
+    },
+    {
+      "id": 4,
+      "name": "Juan Dela Cruz",
+      "email": "juan@example.com",
+      "rank": "Distributor",
+      "position": "right",
+      "walletBalance": 250.50
+    },
+    {
+      "id": 5,
+      "name": "Angelica Reyes",
+      "email": "angelica@example.com",
+      "rank": "Distributor",
+      "position": "left",
+      "walletBalance": 125.75
+    }
+  ]
+}

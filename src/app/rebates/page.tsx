@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import MainLayout from "@/components/layout/MainLayout";
+import VirtualizedList from "@/components/common/VirtualizedList";
 import {
   FaChartLine, FaWallet, FaFilter, FaCalendarAlt,
   FaChevronDown, FaChevronUp, FaSpinner, FaCheck,
@@ -82,71 +84,106 @@ export default function RebatesPage() {
     }
   }, [status, router]);
 
+  // Function to fetch rebates data
+  const fetchRebates = useCallback(async () => {
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.append("page", page.toString());
+    params.append("pageSize", pageSize.toString());
+
+    if (filter !== "all") {
+      params.append("status", filter);
+    }
+
+    if (dateRange.startDate) {
+      params.append("startDate", dateRange.startDate);
+    }
+
+    if (dateRange.endDate) {
+      params.append("endDate", dateRange.endDate);
+    }
+
+    const response = await fetch(`/api/rebates?${params.toString()}`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch rebates: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    if (data.rebates && Array.isArray(data.rebates)) {
+      return {
+        rebates: data.rebates,
+        pagination: {
+          totalPages: data.pagination.totalPages,
+          totalItems: data.pagination.totalItems
+        }
+      };
+    } else {
+      // Handle legacy API response format
+      return {
+        rebates: Array.isArray(data) ? data : [],
+        pagination: {
+          totalPages: 1,
+          totalItems: Array.isArray(data) ? data.length : 0
+        }
+      };
+    }
+  }, [filter, page, pageSize, dateRange]);
+
+  // Function to fetch rebate stats
+  const fetchRebateStats = useCallback(async () => {
+    const response = await fetch("/api/rebates/stats");
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch rebate stats: ${response.statusText}`);
+    }
+
+    return await response.json();
+  }, []);
+
+  // Use React Query for data fetching
+  const {
+    data: rebatesData,
+    isLoading: isRebatesLoading,
+    error: rebatesError
+  } = useQuery({
+    queryKey: ['rebates', filter, page, pageSize, dateRange],
+    queryFn: fetchRebates,
+    enabled: status === 'authenticated',
+    staleTime: 60 * 1000, // 1 minute
+    keepPreviousData: true
+  });
+
+  const {
+    data: statsData,
+    isLoading: isStatsLoading
+  } = useQuery({
+    queryKey: ['rebateStats'],
+    queryFn: fetchRebateStats,
+    enabled: status === 'authenticated',
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Update state from query results
   useEffect(() => {
-    if (status === "authenticated") {
-      fetchRebates();
-      fetchRebateStats();
+    if (rebatesData) {
+      setRebates(rebatesData.rebates);
+      setTotalPages(rebatesData.pagination.totalPages);
+      setTotalItems(rebatesData.pagination.totalItems);
     }
-  }, [status, filter, page, pageSize, dateRange]);
+  }, [rebatesData]);
 
-  const fetchRebates = async () => {
-    setLoading(true);
-    try {
-      // Build query parameters
-      const params = new URLSearchParams();
-      params.append("page", page.toString());
-      params.append("pageSize", pageSize.toString());
-
-      if (filter !== "all") {
-        params.append("status", filter);
-      }
-
-      if (dateRange.startDate) {
-        params.append("startDate", dateRange.startDate);
-      }
-
-      if (dateRange.endDate) {
-        params.append("endDate", dateRange.endDate);
-      }
-
-      const response = await fetch(`/api/rebates?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch rebates: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      if (data.rebates && Array.isArray(data.rebates)) {
-        setRebates(data.rebates);
-        setTotalPages(data.pagination.totalPages);
-        setTotalItems(data.pagination.totalItems);
-      } else {
-        // Handle legacy API response format
-        setRebates(Array.isArray(data) ? data : []);
-      }
-
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching rebates:", error);
-      setLoading(false);
+  useEffect(() => {
+    if (statsData) {
+      setStats(statsData);
     }
-  };
+  }, [statsData]);
 
-  const fetchRebateStats = async () => {
-    try {
-      const response = await fetch("/api/rebates/stats");
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch rebate stats: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      setStats(data);
-    } catch (error) {
-      console.error("Error fetching rebate stats:", error);
-    }
-  };
+  // Update loading state
+  useEffect(() => {
+    setLoading(isRebatesLoading || isStatsLoading);
+  }, [isRebatesLoading, isStatsLoading]);
 
   const handleDateRangeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -363,89 +400,112 @@ export default function RebatesPage() {
                 <span>Loading rebates...</span>
               </div>
             ) : rebates.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead>
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        From
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Product
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Level
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Percentage
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Amount
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Processed At
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {rebates.map((rebate) => (
-                      <tr key={rebate.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(rebate.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center mr-3">
-                              <FaUser className="text-gray-500" />
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {rebate.generator.name}
-                              </div>
+              <div>
+                {/* Table header */}
+                <div className="min-w-full border-b border-gray-200 mb-2">
+                  <div className="grid grid-cols-8 gap-2">
+                    <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </div>
+                    <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      From
+                    </div>
+                    <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Product
+                    </div>
+                    <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Level
+                    </div>
+                    <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Percentage
+                    </div>
+                    <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Amount
+                    </div>
+                    <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </div>
+                    <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Processed At
+                    </div>
+                  </div>
+                </div>
+
+                {/* Virtualized list of rebates */}
+                <VirtualizedList
+                  items={rebates}
+                  height={500}
+                  itemHeight={70}
+                  overscan={5}
+                  keyExtractor={(rebate) => rebate.id}
+                  renderItem={(rebate) => (
+                    <div className="grid grid-cols-8 gap-2 border-b border-gray-200 hover:bg-gray-50">
+                      <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(rebate.createdAt).toLocaleDateString()}
+                      </div>
+                      <div className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+                            <FaUser className="text-gray-500" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {rebate.generator.name}
                             </div>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {rebate.purchase.product.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          Level {rebate.level}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {rebate.percentage}%
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                          ₱{rebate.amount.toFixed(2)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              rebate.status === "processed"
-                                ? "bg-green-100 text-green-800"
-                                : rebate.status === "pending"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {rebate.status.charAt(0).toUpperCase() +
-                              rebate.status.slice(1)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {rebate.processedAt
-                            ? new Date(rebate.processedAt).toLocaleString()
-                            : "-"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                      </div>
+                      <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {rebate.purchase.product.name}
+                      </div>
+                      <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        Level {rebate.level}
+                      </div>
+                      <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {rebate.percentage}%
+                      </div>
+                      <div className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                        ₱{rebate.amount.toFixed(2)}
+                      </div>
+                      <div className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            rebate.status === "processed"
+                              ? "bg-green-100 text-green-800"
+                              : rebate.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {rebate.status.charAt(0).toUpperCase() +
+                            rebate.status.slice(1)}
+                        </span>
+                      </div>
+                      <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {rebate.processedAt
+                          ? new Date(rebate.processedAt).toLocaleString()
+                          : "-"}
+                      </div>
+                    </div>
+                  )}
+                  emptyComponent={
+                    <p className="text-gray-500 text-center py-8">
+                      No rebates found matching your criteria.
+                    </p>
+                  }
+                  loadingComponent={
+                    <div className="flex items-center justify-center h-64">
+                      <FaSpinner className="animate-spin text-blue-500 mr-2" />
+                      <span>Loading rebates...</span>
+                    </div>
+                  }
+                  onEndReached={() => {
+                    if (page < totalPages) {
+                      handlePageChange(page + 1);
+                    }
+                  }}
+                  onEndReachedThreshold={0.8}
+                />
               </div>
             ) : (
               <p className="text-gray-500 text-center py-8">

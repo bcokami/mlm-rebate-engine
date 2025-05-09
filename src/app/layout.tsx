@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { CartProvider } from "@/contexts/CartContext";
 import QueryProvider from "@/providers/QueryProvider";
+import ServiceWorkerProvider from "@/providers/ServiceWorkerProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,7 +40,9 @@ export default function RootLayout({
         <AuthProvider>
           <QueryProvider>
             <CartProvider>
-              {children}
+              <ServiceWorkerProvider>
+                {children}
+              </ServiceWorkerProvider>
             </CartProvider>
           </QueryProvider>
         </AuthProvider>
