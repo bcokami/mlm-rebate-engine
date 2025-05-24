@@ -1,43 +1,44 @@
 {
   "admin": {
-    "name": "Test Admin",
-    "email": "testadmin@example.com",
+    "name": "Admin User",
+    "email": "admin@test.com",
     "role": "Admin",
-    "password": "Test@123"
+    "password": "Test@123",
+    "description": "System administrator with full access"
   },
   "regularUser": {
     "name": "Test User",
     "email": "test@example.com",
     "role": "User",
-    "password": "Password123"
+    "password": "Password@123",
+    "description": "Regular user for basic functionality testing"
   },
   "distributor": {
     "name": "Test Distributor",
     "email": "distributor@example.com",
     "role": "Distributor",
-    "password": "Distributor@123"
+    "password": "Distributor@123",
+    "description": "Basic distributor level for MLM testing"
   },
   "silver": {
     "name": "Silver Member",
     "email": "silver@example.com",
     "role": "Silver",
-    "password": "Silver@123"
+    "password": "Silver@123",
+    "description": "Silver rank member for testing rank-specific features"
   },
   "gold": {
     "name": "Gold Member",
     "email": "gold@example.com",
     "role": "Gold",
-    "password": "Gold@123"
+    "password": "Gold@123",
+    "description": "Gold rank member for testing higher-tier features"
   },
   "platinum": {
     "name": "Platinum Member",
     "email": "platinum@example.com",
     "role": "Platinum",
-    "password": "Platinum@123"
-  },
-  "newUser": {
-    "name": "New Test User",
-    "email": "newuser@example.com",
-    "password": "NewUser@123"
+    "password": "Platinum@123",
+    "description": "Platinum rank member for testing premium features"
   }
 }

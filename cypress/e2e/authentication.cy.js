@@ -7,31 +7,36 @@ describe('Authentication Tests', () => {
       cy.clearCookies();
       cy.clearLocalStorage();
     });
-    
+
     it('should login as regular user', () => {
       // Login as regular user
       cy.loginAsTestUser();
-      
+
       // Take a screenshot
       cy.screenshot('auth-regular-user');
-      
+
       // Check if we're logged in
       cy.url().then(url => {
+        cy.log(`Current URL after login: ${url}`);
         if (url.includes('/dashboard')) {
           cy.log('✅ Successfully logged in as regular user');
         } else {
           cy.log('❌ Failed to log in as regular user');
         }
       });
-      
+
       // Check for user-specific elements
       cy.get('body').then($body => {
         const text = $body.text().toLowerCase();
-        const hasUserElements = text.includes('dashboard') || 
-                              text.includes('profile') || 
+
+        // Log the body text for debugging
+        cy.log(`Body text: ${text.substring(0, 200)}...`);
+
+        const hasUserElements = text.includes('dashboard') ||
+                              text.includes('profile') ||
                               text.includes('logout') ||
                               text.includes('account');
-        
+
         if (hasUserElements) {
           cy.log('✅ User-specific elements found');
         } else {
@@ -39,14 +44,14 @@ describe('Authentication Tests', () => {
         }
       });
     });
-    
+
     it('should login as admin user', () => {
       // Login as admin user
       cy.loginAsAdmin();
-      
+
       // Take a screenshot
       cy.screenshot('auth-admin-user');
-      
+
       // Check if we're logged in
       cy.url().then(url => {
         if (url.includes('/dashboard') || url.includes('/admin')) {
@@ -55,15 +60,15 @@ describe('Authentication Tests', () => {
           cy.log('❌ Failed to log in as admin user');
         }
       });
-      
+
       // Check for admin-specific elements
       cy.get('body').then($body => {
         const text = $body.text().toLowerCase();
-        const hasAdminElements = text.includes('admin') || 
-                               text.includes('manage') || 
+        const hasAdminElements = text.includes('admin') ||
+                               text.includes('manage') ||
                                text.includes('users') ||
                                text.includes('settings');
-        
+
         if (hasAdminElements) {
           cy.log('✅ Admin-specific elements found');
         } else {
@@ -71,14 +76,14 @@ describe('Authentication Tests', () => {
         }
       });
     });
-    
+
     it('should login as distributor', () => {
       // Login as distributor
       cy.loginAsDistributor();
-      
+
       // Take a screenshot
       cy.screenshot('auth-distributor');
-      
+
       // Check if we're logged in
       cy.url().then(url => {
         if (url.includes('/dashboard')) {
@@ -87,15 +92,15 @@ describe('Authentication Tests', () => {
           cy.log('❌ Failed to log in as distributor');
         }
       });
-      
+
       // Check for distributor-specific elements
       cy.get('body').then($body => {
         const text = $body.text().toLowerCase();
-        const hasDistributorElements = text.includes('genealogy') || 
-                                     text.includes('downline') || 
+        const hasDistributorElements = text.includes('genealogy') ||
+                                     text.includes('downline') ||
                                      text.includes('rebates') ||
                                      text.includes('commission');
-        
+
         if (hasDistributorElements) {
           cy.log('✅ Distributor-specific elements found');
         } else {
@@ -104,13 +109,13 @@ describe('Authentication Tests', () => {
       });
     });
   });
-  
+
   context('Access Control', () => {
     it('should test access to protected routes as guest', () => {
       // Clear cookies and local storage
       cy.clearCookies();
       cy.clearLocalStorage();
-      
+
       // List of protected routes
       const protectedRoutes = [
         '/dashboard',
@@ -119,18 +124,18 @@ describe('Authentication Tests', () => {
         '/rebates',
         '/admin'
       ];
-      
+
       // Visit each protected route
       protectedRoutes.forEach(route => {
         safeVisit(route);
-        
+
         // Take a screenshot
         cy.screenshot(`auth-guest-${route.replace(/\//g, '-')}`);
-        
+
         // Check if redirected to login page
         cy.url().then(url => {
           const isLoginPage = url.includes('login') || url.includes('auth') || url.includes('signin');
-          
+
           if (isLoginPage) {
             cy.log(`✅ Protected route ${route} redirects to login`);
           } else {
@@ -139,22 +144,22 @@ describe('Authentication Tests', () => {
         });
       });
     });
-    
+
     it('should test access to admin routes as regular user', () => {
       // Login as regular user
       cy.loginAsTestUser();
-      
+
       // Try to access admin route
       safeVisit('/admin');
-      
+
       // Take a screenshot
       cy.screenshot('auth-regular-user-admin-access');
-      
+
       // Check if access is denied
       cy.url().then(url => {
         const isAdminPage = url.includes('/admin');
         const isDeniedPage = url.includes('denied') || url.includes('forbidden') || url.includes('unauthorized');
-        
+
         if (!isAdminPage || isDeniedPage) {
           cy.log('✅ Regular user cannot access admin page');
         } else {
@@ -163,25 +168,25 @@ describe('Authentication Tests', () => {
       });
     });
   });
-  
+
   context('Authentication Persistence', () => {
     it('should test session persistence', () => {
       // Login as regular user
       cy.loginAsTestUser();
-      
+
       // Visit dashboard
       safeVisit('/dashboard');
-      
+
       // Reload the page
       cy.reload();
-      
+
       // Take a screenshot
       cy.screenshot('auth-session-persistence');
-      
+
       // Check if still logged in
       cy.url().then(url => {
         const isLoginPage = url.includes('login') || url.includes('auth') || url.includes('signin');
-        
+
         if (!isLoginPage) {
           cy.log('✅ Session persists after page reload');
         } else {
@@ -189,26 +194,26 @@ describe('Authentication Tests', () => {
         }
       });
     });
-    
+
     it('should test logout functionality', () => {
       // Login as regular user
       cy.loginAsTestUser();
-      
+
       // Try to find and click logout button
       cy.get('body').then($body => {
         const text = $body.text().toLowerCase();
-        
+
         if (text.includes('logout') || text.includes('sign out')) {
           cy.contains(/logout|sign out/i).click({ force: true });
-          
+
           // Take a screenshot
           cy.screenshot('auth-after-logout');
-          
+
           // Check if logged out
           cy.url().then(url => {
             const isLoginPage = url.includes('login') || url.includes('auth') || url.includes('signin');
             const isHomePage = url === Cypress.config('baseUrl') + '/' || url === Cypress.config('baseUrl');
-            
+
             if (isLoginPage || isHomePage) {
               cy.log('✅ Successfully logged out');
             } else {

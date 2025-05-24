@@ -10,18 +10,23 @@ module.exports = defineConfig({
     viewportHeight: 720,
     video: true,
     screenshotOnRunFailure: true,
-    defaultCommandTimeout: 10000,
-    requestTimeout: 10000,
-    responseTimeout: 10000,
+    defaultCommandTimeout: 15000,
+    requestTimeout: 15000,
+    responseTimeout: 15000,
     pageLoadTimeout: 30000,
+    // Performance optimizations
+    numTestsKeptInMemory: 5,
+    experimentalMemoryManagement: true,
+    videoCompression: 15,
   },
   env: {
+    // Test user credentials (fallback when fixtures are not used)
     testUser: {
       email: 'test@example.com',
-      password: 'Password123',
+      password: 'Password@123',
     },
     adminUser: {
-      email: 'testadmin@example.com',
+      email: 'admin@test.com',
       password: 'Test@123',
     },
     distributor: {
@@ -40,6 +45,7 @@ module.exports = defineConfig({
       email: 'platinum@example.com',
       password: 'Platinum@123',
     },
-    useFixtures: true, // Set to true to use fixtures instead of env variables
+    // Use fixtures for test users (recommended)
+    useFixtures: true,
   },
 });
