@@ -1,0 +1,43 @@
+{
+  "admin": {
+    "name": "Test Admin",
+    "email": "testadmin@example.com",
+    "role": "Admin",
+    "password": "Test@123"
+  },
+  "regularUser": {
+    "name": "Test User",
+    "email": "test@example.com",
+    "role": "User",
+    "password": "Password123"
+  },
+  "distributor": {
+    "name": "Test Distributor",
+    "email": "distributor@example.com",
+    "role": "Distributor",
+    "password": "Distributor@123"
+  },
+  "silver": {
+    "name": "Silver Member",
+    "email": "silver@example.com",
+    "role": "Silver",
+    "password": "Silver@123"
+  },
+  "gold": {
+    "name": "Gold Member",
+    "email": "gold@example.com",
+    "role": "Gold",
+    "password": "Gold@123"
+  },
+  "platinum": {
+    "name": "Platinum Member",
+    "email": "platinum@example.com",
+    "role": "Platinum",
+    "password": "Platinum@123"
+  },
+  "newUser": {
+    "name": "New Test User",
+    "email": "newuser@example.com",
+    "password": "NewUser@123"
+  }
+}

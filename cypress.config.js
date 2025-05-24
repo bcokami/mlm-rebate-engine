@@ -18,11 +18,28 @@ module.exports = defineConfig({
   env: {
     testUser: {
       email: 'test@example.com',
-      password: 'password123',
+      password: 'Password123',
     },
     adminUser: {
-      email: 'admin@example.com',
-      password: 'admin123',
+      email: 'testadmin@example.com',
+      password: 'Test@123',
     },
+    distributor: {
+      email: 'distributor@example.com',
+      password: 'Distributor@123',
+    },
+    silver: {
+      email: 'silver@example.com',
+      password: 'Silver@123',
+    },
+    gold: {
+      email: 'gold@example.com',
+      password: 'Gold@123',
+    },
+    platinum: {
+      email: 'platinum@example.com',
+      password: 'Platinum@123',
+    },
+    useFixtures: true, // Set to true to use fixtures instead of env variables
   },
 });

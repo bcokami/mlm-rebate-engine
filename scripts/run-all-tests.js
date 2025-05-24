@@ -18,7 +18,9 @@ const testSuites = [
   { name: 'User Flows', spec: 'user-flows.cy.js' },
   { name: 'Error Handling', spec: 'error-handling.cy.js' },
   { name: 'Mobile Features', spec: 'mobile-features.cy.js' },
-  { name: 'Security Features', spec: 'security-features.cy.js' }
+  { name: 'Security Features', spec: 'security-features.cy.js' },
+  { name: 'Authentication', spec: 'authentication.cy.js' },
+  { name: 'User Ranks', spec: 'user-ranks.cy.js' }
 ];
 
 // Results storage

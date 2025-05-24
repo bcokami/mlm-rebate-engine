@@ -58,6 +58,19 @@ The testing framework includes several test suites:
    - Data protection
    - Input validation
 
+10. **Authentication Tests** (`authentication.cy.js`): Tests that check authentication functionality, including:
+   - Login with different user types
+   - Access control
+   - Authentication persistence
+   - Logout functionality
+
+11. **User Rank Tests** (`user-ranks.cy.js`): Tests that check the experience for different user ranks, including:
+   - Distributor experience
+   - Silver member experience
+   - Gold member experience
+   - Platinum member experience
+   - Rank comparison
+
 ## Utility Functions
 
 The testing framework includes several utility functions to make tests more resilient:
@@ -88,6 +101,8 @@ npm run test:e2e:user-flows
 npm run test:e2e:error-handling
 npm run test:e2e:mobile
 npm run test:e2e:security
+npm run test:e2e:authentication
+npm run test:e2e:user-ranks
 
 # Open Cypress UI
 npm run cypress:open

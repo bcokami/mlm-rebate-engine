@@ -48,7 +48,9 @@
     "test:e2e:user-flows": "cypress run --spec 'cypress/e2e/user-flows.cy.js'",
     "test:e2e:error-handling": "cypress run --spec 'cypress/e2e/error-handling.cy.js'",
     "test:e2e:mobile": "cypress run --spec 'cypress/e2e/mobile-features.cy.js'",
-    "test:e2e:security": "cypress run --spec 'cypress/e2e/security-features.cy.js'"
+    "test:e2e:security": "cypress run --spec 'cypress/e2e/security-features.cy.js'",
+    "test:e2e:authentication": "cypress run --spec 'cypress/e2e/authentication.cy.js'",
+    "test:e2e:user-ranks": "cypress run --spec 'cypress/e2e/user-ranks.cy.js'"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.9.0",
